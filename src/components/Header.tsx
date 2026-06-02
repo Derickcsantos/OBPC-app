@@ -1,0 +1,80 @@
+import React from 'react';
+import { Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors } from '../theme/colors';
+
+interface HeaderProps {
+  title: string;
+  onMenuPress: () => void;
+  onProfilePress: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ title, onMenuPress, onProfilePress }) => {
+  return (
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+      <View style={styles.container}>
+        <Pressable style={styles.iconButton} onPress={onMenuPress}>
+          <Text style={styles.iconText}>☰</Text>
+        </Pressable>
+
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+
+        <Pressable style={styles.iconButton} onPress={onProfilePress}>
+          <Text style={styles.profileText}>U</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: colors.white,
+  },
+  container: {
+    height: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: colors.primarySoft,
+  },
+  iconText: {
+    color: colors.primary,
+    fontSize: 24,
+    fontWeight: '900',
+    marginTop: -2,
+  },
+  profileText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: '900',
+    width: 30,
+    height: 30,
+    lineHeight: 30,
+    textAlign: 'center',
+    borderRadius: 15,
+    backgroundColor: colors.accent,
+  },
+  title: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 19,
+    fontWeight: '900',
+    textAlign: 'center',
+    paddingHorizontal: 12,
+  },
+});

@@ -1,0 +1,102 @@
+name: Mobile Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: android
+            profile: apk
+            artifact_name: OBPC-android.apk
+          - platform: ios
+            profile: production
+            artifact_name: OBPC-ios.ipa
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Validate EAS project config
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+
+          const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          const eas = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
+
+          if (!app.expo?.extra?.eas?.projectId) {
+            throw new Error('Missing app.json expo.extra.eas.projectId. Run eas init locally and commit app.json.');
+          }
+
+          if (!eas.build?.apk) {
+            throw new Error('Missing eas.json build.apk profile.');
+          }
+
+          if (!eas.build?.production) {
+            throw new Error('Missing eas.json build.production profile.');
+          }
+
+          console.log(`EAS projectId: ${app.expo.extra.eas.projectId}`);
+          console.log(`Available profiles: ${Object.keys(eas.build).join(', ')}`);
+          NODE
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build with EAS
+        run: eas build --platform ${{ matrix.platform }} --profile ${{ matrix.profile }} --non-interactive --wait --json > eas-build-${{ matrix.platform }}.json
+
+      - name: Extract artifact URL
+        id: artifact
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require('fs');
+          const platform = process.env.PLATFORM;
+          const raw = fs.readFileSync(`eas-build-${platform}.json`, 'utf8');
+          const parsed = JSON.parse(raw);
+          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+          const url = build?.artifacts?.buildUrl || build?.artifactUrl || build?.buildUrl;
+          if (!url) {
+            console.error(raw);
+            throw new Error('Artifact URL not found in EAS output.');
+          }
+          console.log(`url=${url}`);
+          NODE
+        env:
+          PLATFORM: ${{ matrix.platform }}
+
+      - name: Download artifact
+        run: curl -L "${{ steps.artifact.outputs.url }}" -o "${{ matrix.artifact_name }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}

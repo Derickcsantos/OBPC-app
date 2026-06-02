@@ -1,4 +1,57 @@
 {
-  "name": "ObpcApp",
-  "displayName": "ObpcApp"
+  "expo": {
+    "name": "OBPC",
+    "slug": "ObpcApp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/logo-completo.png",
+    "userInterfaceStyle": "light",
+
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./src/assets/logo-completo.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ]
+    ],
+
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+
+    "ios": {
+      "userInterfaceStyle": "light",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.obpcapp"
+    },
+
+    "android": {
+      "userInterfaceStyle": "light",
+      "package": "com.obpcapp",
+      "versionCode": 1,
+
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/logo-completo.png",
+        "backgroundColor": "#ffffff"
+      },
+
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+
+    "web": {
+      "favicon": "./src/assets/logo-completo.png"
+    },
+
+    "extra": {
+      "eas": {
+        "projectId": "0acf1d60-e8f8-4c66-8180-19dc645565f3"
+      }
+    }
+  }
 }
