@@ -18,6 +18,7 @@ import PrayerIcon from '../assets/hands-pray-svgrepo-com.svg';
 import InstagramIcon from '../assets/instagram-svgrepo-com.svg';
 import MinistryIcon from '../assets/heart-svgrepo-com.svg';
 import WhatsappIcon from '../assets/whatsapp-svgrepo-com.svg';
+import ChurchIcon from '../assets/church-svgrepo-com.svg';
 
 const logo = require('../../logo.jpg');
 type ShortcutIcon = React.FC<{ width?: number; height?: number }>;
@@ -103,7 +104,7 @@ export const HomeScreen = ({ onNavigate }: HomeScreenProps) => {
         <Shortcut Icon={WhatsappIcon} label="WhatsApp" onPress={() => openExternalUrl('https://w.app/obpc')} />
         <Shortcut icon="L" label="Louvores" />
         <Shortcut icon="MSG" label="Mensagens" />
-        <Shortcut icon="I" label="Igreja" onPress={() => onNavigate('Sobre')} />
+        <Shortcut Icon={ChurchIcon} label="Igreja" onPress={() => onNavigate('Sobre')} />
       </View>
 
       <View style={styles.bottomSpacer} />
