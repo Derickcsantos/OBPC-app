@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 import {
   Book,
+  BibleVersion,
   Chapter,
   CreateEventoPayload,
   CreateEventoInscricaoPayload,
@@ -202,6 +203,13 @@ export const updateOracao = (id: string, payload: Partial<Oracao>) =>
   updateResource<Oracao, Partial<Oracao>>('/api/oracoes', id, payload);
 export const deleteOracao = (id: string) => deleteResource<Oracao>('/api/oracoes', id);
 
+export const getBibleVersions = async (): Promise<BibleVersion[]> => {
+  return cachedGet('biblia:versions', async () => {
+    const response = await api.get('/api/biblia/versions');
+    return normalizeArray<BibleVersion>(extractData<unknown>(response));
+  });
+};
+
 export const getBooks = async (testamentId?: number): Promise<Book[]> => {
   return cachedGet(`biblia:books:${testamentId ?? 'all'}`, async () => {
     let books: Book[];
@@ -209,15 +217,12 @@ export const getBooks = async (testamentId?: number): Promise<Book[]> => {
     try {
       const response = await api.get('/api/biblia/books', {
         params: {
-          version_id: 1,
           ...(testamentId ? { testament_id: testamentId } : {}),
         },
       });
       books = normalizeArray<Book>(extractData<unknown>(response));
     } catch {
-      const response = await api.get('/api/biblia/books', {
-        params: { version_id: 1 },
-      });
+      const response = await api.get('/api/biblia/books');
       books = normalizeArray<Book>(extractData<unknown>(response));
     }
 
@@ -227,13 +232,13 @@ export const getBooks = async (testamentId?: number): Promise<Book[]> => {
   });
 };
 
-export const getChapters = async (bookId: number): Promise<Chapter[]> => {
-  return cachedGet(`biblia:chapters:${bookId}`, async () => {
+export const getChapters = async (bookId: number, version = 'nvi'): Promise<Chapter[]> => {
+  return cachedGet(`biblia:chapters:${bookId}:${version}`, async () => {
     let response: AxiosResponse;
 
     try {
       response = await api.get('/api/biblia/chapters', {
-        params: { version_id: 1, book_id: bookId },
+        params: { version, book_id: bookId },
       });
     } catch {
       response = await api.get('/api/biblia/chapters', {
@@ -264,14 +269,15 @@ export const getVerses = async (
   bookId: number,
   chapterId: number,
   verse?: number,
+  version = 'nvi',
 ): Promise<Verse[]> => {
-  return cachedGet(`biblia:verses:${bookId}:${chapterId}:${verse ?? 'all'}`, async () => {
+  return cachedGet(`biblia:verses:${bookId}:${chapterId}:${verse ?? 'all'}:${version}`, async () => {
     let response: AxiosResponse;
 
     try {
       response = await api.get('/api/biblia/verses', {
         params: {
-          version_id: 1,
+          version,
           book_id: bookId,
           chapter_id: chapterId,
           verse,
@@ -338,14 +344,15 @@ export const searchBible = async (
   keyword: string,
   bookId?: number,
   chapterId?: number,
+  version = 'nvi',
 ): Promise<Verse[]> => {
-  return cachedGet(`biblia:search:${keyword}:${bookId ?? 'all'}:${chapterId ?? 'all'}`, async () => {
+  return cachedGet(`biblia:search:${keyword}:${bookId ?? 'all'}:${chapterId ?? 'all'}:${version}`, async () => {
     let response: AxiosResponse;
 
     try {
       response = await api.get('/api/biblia/search', {
         params: {
-          version_id: 1,
+          version,
           keyword,
           book_id: bookId,
           chapter_id: chapterId,

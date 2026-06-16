@@ -96,11 +96,17 @@ export interface Oracao {
 }
 
 export interface BibleVersion {
-  id: number;
+  id: number | string;
+  code?: string;
   name?: string;
   version?: string;
   abbreviation?: string;
   abbrev?: string;
+  language?: string;
+  comparison_scope?: string;
+  total_books?: number;
+  total_chapters?: number;
+  total_verses?: number;
   [key: string]: unknown;
 }
 
