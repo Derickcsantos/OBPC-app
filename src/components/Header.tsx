@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
-    backgroundColor: colors.primarySoft,
+    backgroundColor: colors.homeShortcutBackground,
   },
   iconText: {
     color: colors.primary,
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   profileText: {
-    color: colors.white,
+    color: colors.primary,
     fontSize: 15,
     fontWeight: '900',
     width: 30,
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     textAlign: 'center',
     borderRadius: 15,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.homeShortcutBackground,
   },
   title: {
     flex: 1,

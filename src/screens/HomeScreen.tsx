@@ -1,16 +1,13 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import {
-  ActivityIndicator,
   Image,
   Linking,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
-import { checkHealth } from '../services/api';
 import { colors } from '../theme/colors';
 import BibleIcon from '../assets/books-study-learning-education-reading-library-svgrepo-com.svg';
 import CalendarIcon from '../assets/calendar-svgrepo-com.svg';
@@ -38,62 +35,16 @@ const openExternalUrl = async (url: string) => {
 };
 
 export const HomeScreen = ({ onNavigate }: HomeScreenProps) => {
-  const [apiStatus, setApiStatus] = useState('verificando');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
-
-  const loadData = useCallback(async () => {
-    setError('');
-
-    try {
-      const health = await checkHealth();
-      setApiStatus(health.status ?? 'ok');
-    } catch (requestError) {
-      setApiStatus('offline');
-      setError('Nao foi possivel verificar a conexao agora.');
-      console.error('Erro ao carregar dados da Home:', requestError);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Carregando aplicativo OBPC</Text>
-      </View>
-    );
-  }
-
   return (
     <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
       <View style={styles.hero}>
         <View style={styles.heroLogoFrame}>
           <Image source={logo} style={styles.heroLogo} resizeMode="contain" />
         </View>
-        <View style={styles.statusPill}>
-          <View style={[styles.statusDot, apiStatus === 'ok' ? styles.statusOnline : styles.statusOffline]} />
-          <Text style={styles.statusText}>API {apiStatus}</Text>
-        </View>
       </View>
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <View style={styles.shortcutsGrid}>
         <Shortcut Icon={MinistryIcon} label="Ministerios" onPress={() => onNavigate('Ministerios')} />
@@ -138,17 +89,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
   },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-  },
-  loadingText: {
-    marginTop: 12,
-    color: colors.textSecondary,
-    fontWeight: '700',
-  },
   hero: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -166,38 +106,6 @@ const styles = StyleSheet.create({
   heroLogo: {
     width: '100%',
     height: '100%',
-  },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: colors.primarySoft,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  statusOnline: {
-    backgroundColor: '#b0e7c5',
-  },
-  statusOffline: {
-    backgroundColor: '#F59D8D',
-  },
-  statusText: {
-    color: colors.primary,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    fontSize: 11,
-  },
-  errorText: {
-    margin: 16,
-    color: colors.danger,
-    fontWeight: '700',
   },
   shortcutsGrid: {
     flexDirection: 'row',

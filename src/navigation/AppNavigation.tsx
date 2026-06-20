@@ -60,10 +60,14 @@ export const AppNavigation = () => {
   const [currentRoute, setCurrentRoute] = useState<AppRoute>('Inicio');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<Pessoa | null>(null);
+  const [bibleReadingMode, setBibleReadingMode] = useState(false);
 
   const navigate = (route: AppRoute) => {
     setCurrentRoute(route);
     setSidebarOpen(false);
+    if (route !== 'Biblia') {
+      setBibleReadingMode(false);
+    }
   };
 
   const renderScreen = () => {
@@ -75,7 +79,7 @@ export const AppNavigation = () => {
       case 'Oracao':
         return <OracaoScreen />;
       case 'Biblia':
-        return <BibliaScreen />;
+        return <BibliaScreen onReadingModeChange={setBibleReadingMode} />;
       case 'Eventos':
         return <EventosScreen />;
       case 'Sobre':
@@ -109,7 +113,9 @@ export const AppNavigation = () => {
 
   return (
     <View style={styles.container}>
-      <Header title={titles[currentRoute]} onMenuPress={() => setSidebarOpen(true)} onProfilePress={() => navigate('Perfil')} />
+      {!(currentRoute === 'Biblia' && bibleReadingMode) ? (
+        <Header title={titles[currentRoute]} onMenuPress={() => setSidebarOpen(true)} onProfilePress={() => navigate('Perfil')} />
+      ) : null}
       <View style={styles.content}>{renderScreen()}</View>
 
       <SafeAreaView edges={['bottom']} style={styles.bottomSafe}>

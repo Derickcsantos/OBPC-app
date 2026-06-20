@@ -335,11 +335,6 @@ const styles = StyleSheet.create({
   },
   detailBody: {
     marginTop: 16,
-    padding: 18,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   detailDescription: {
     color: colors.textSecondary,

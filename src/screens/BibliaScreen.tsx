@@ -56,6 +56,13 @@ const getVersionLabel = (version?: BibleVersion | null) => {
   return String(version.name ?? version.abbreviation ?? version.abbrev ?? version.code ?? version.id).toUpperCase();
 };
 
+const normalizeBookName = (value?: string) =>
+  (value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
 const chaptersFromVerses = (book: Book, items: Verse[], version: string): Chapter[] => {
   const chapterNumbers = Array.from(
     new Set(items.map(item => item.chapter).filter((chapter): chapter is number => typeof chapter === 'number')),
@@ -70,7 +77,7 @@ const chaptersFromVerses = (book: Book, items: Verse[], version: string): Chapte
   }));
 };
 
-export const BibliaScreen = () => {
+export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (active: boolean) => void }) => {
   const [testament, setTestament] = useState<TestamentFilter>('all');
   const [books, setBooks] = useState<Book[]>([]);
   const [versions, setVersions] = useState<BibleVersion[]>([]);
@@ -88,6 +95,7 @@ export const BibliaScreen = () => {
   const [step, setStep] = useState<Step>('books');
   const [error, setError] = useState('');
   const selectedBookIdRef = useRef<number | null>(null);
+  const verseScrollRef = useRef<ScrollView>(null);
 
   const displayedVerses = useMemo(() => uniqueVerses(verses), [verses]);
   const displayedSearchResults = useMemo(() => uniqueVerses(searchResults), [searchResults]);
@@ -140,6 +148,22 @@ export const BibliaScreen = () => {
   useEffect(() => {
     loadBooks('all');
   }, [loadBooks]);
+
+  useEffect(() => {
+    onReadingModeChange?.(step === 'verses');
+
+    return () => onReadingModeChange?.(false);
+  }, [onReadingModeChange, step]);
+
+  useEffect(() => {
+    if (step !== 'verses') {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      verseScrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
+  }, [selectedChapter, step]);
 
   const handleSelectBook = async (book: Book) => {
     setSelectedBook(book);
@@ -258,6 +282,66 @@ export const BibliaScreen = () => {
     }
   };
 
+  const openSearchResult = async (verse: Verse) => {
+    const chapterNumber = verse.chapter ?? verse.chapter_id;
+    const resultBookId = verse.book_id ?? verse.book;
+
+    if (!chapterNumber) {
+      setError('Não foi possível identificar o capítulo deste resultado.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      let availableBooks = books;
+      let targetBook = availableBooks.find(book => book.id === resultBookId);
+
+      if (!targetBook && verse.book_name) {
+        const resultBookName = normalizeBookName(verse.book_name);
+        targetBook = availableBooks.find(book => normalizeBookName(book.name) === resultBookName);
+      }
+
+      if (!targetBook) {
+        availableBooks = await getBooks();
+        targetBook =
+          availableBooks.find(book => book.id === resultBookId) ??
+          availableBooks.find(book => normalizeBookName(book.name) === normalizeBookName(verse.book_name));
+      }
+
+      if (!targetBook) {
+        throw new Error('Livro do resultado não encontrado.');
+      }
+
+      const sameBook = selectedBook?.id === targetBook.id;
+      const cachedVerses = sameBook ? bookVerses.filter(item => item.chapter === chapterNumber) : [];
+      const [loadedChapters, loadedVerses] = await Promise.all([
+        sameBook && chapters.length ? Promise.resolve(chapters) : getChapters(targetBook.id, selectedVersion),
+        cachedVerses.length
+          ? Promise.resolve(cachedVerses)
+          : getVerses(targetBook.id, chapterNumber, undefined, selectedVersion),
+      ]);
+
+      setSelectedBook(targetBook);
+      selectedBookIdRef.current = targetBook.id;
+      setSelectedChapter(chapterNumber);
+      setChapters(loadedChapters);
+      setVerses(loadedVerses);
+      setBookVerses(current =>
+        sameBook ? uniqueVerses([...current, ...loadedVerses]) : uniqueVerses(loadedVerses),
+      );
+      setSearchResults([]);
+      setSearchOpen(false);
+      setStep('verses');
+    } catch (requestError) {
+      setError('Não foi possível abrir o capítulo deste resultado.');
+      console.error('Erro ao abrir resultado da busca bíblica:', requestError);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSelectVersion = async (version: string) => {
     if (version === selectedVersion || loading) {
       return;
@@ -326,6 +410,15 @@ export const BibliaScreen = () => {
     }
   };
 
+  const getVerseBookName = (verse: Verse) => {
+    if (verse.book_name) {
+      return verse.book_name;
+    }
+
+    const verseBookId = verse.book_id ?? verse.book;
+    return books.find(book => book.id === verseBookId)?.name ?? selectedBook?.name ?? 'Livro';
+  };
+
   if (loading && !books.length) {
     return (
       <View style={styles.centered}>
@@ -337,7 +430,7 @@ export const BibliaScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.topPanel}>
+      {step !== 'verses' ? <View style={styles.topPanel}>
         <View style={styles.titleRow}>
           <View style={styles.titleBlock}>
             <Text style={styles.kicker}>Leitura e busca</Text>
@@ -387,7 +480,7 @@ export const BibliaScreen = () => {
             </TouchableOpacity>
           </View>
         ) : null}
-      </View>
+      </View> : null}
 
       {step === 'books' ? (
         <>
@@ -411,19 +504,33 @@ export const BibliaScreen = () => {
             data={displayedSearchResults}
             keyExtractor={(item, index) => `${item.id || item.verse}-${index}`}
             renderItem={({ item, index }) => (
-              <VerseItem verse={item} fallbackNumber={index + 1} />
+              <TouchableOpacity
+                style={styles.searchResultItem}
+                activeOpacity={0.72}
+                disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel={`Abrir ${getVerseBookName(item)} capítulo ${item.chapter ?? item.chapter_id ?? ''}`}
+                onPress={() => openSearchResult(item)}
+              >
+                <VerseItem
+                  verse={item}
+                  fallbackNumber={index + 1}
+                  reference={`${getVerseBookName(item)} ${item.chapter ?? item.chapter_id ?? selectedChapter ?? ''}`}
+                />
+                <Text style={styles.searchResultHint}>Abrir capítulo</Text>
+              </TouchableOpacity>
             )}
           />
         </View>
       ) : (
         <>
-          <View style={styles.breadcrumb}>
+          {step !== 'verses' ? <View style={styles.breadcrumb}>
             <TouchableOpacity onPress={() => setStep('books')}>
               <Text style={[styles.breadcrumbText, step === 'books' && styles.activeBreadcrumb]}>Livros</Text>
             </TouchableOpacity>
             {selectedBook ? <Text style={styles.breadcrumbText}> / {selectedBook.name}</Text> : null}
             {selectedChapter ? <Text style={styles.breadcrumbText}> / Cap. {selectedChapter}</Text> : null}
-          </View>
+          </View> : null}
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -472,10 +579,10 @@ export const BibliaScreen = () => {
           {!loading && step === 'verses' ? (
             <View style={styles.versePane} {...panResponder.panHandlers}>
               <View style={styles.chapterNav}>
-                <Text style={styles.chapterNavTitle}>Cap. {selectedChapter}</Text>
+                <Text style={styles.chapterNavTitle}>{selectedBook?.name} {selectedChapter}</Text>
               </View>
 
-              <ScrollView style={styles.verseScroll} contentContainerStyle={styles.verseContent}>
+              <ScrollView ref={verseScrollRef} style={styles.verseScroll} contentContainerStyle={styles.verseContent}>
                 {displayedVerses.length ? (
                   displayedVerses.map((verse, index) => (
                     <VerseItem
@@ -521,10 +628,19 @@ const FilterChip = ({ label, active, onPress }: { label: string; active: boolean
   </TouchableOpacity>
 );
 
-const VerseItem = ({ verse, fallbackNumber }: { verse: Verse; fallbackNumber: number }) => (
+const VerseItem = ({
+  verse,
+  fallbackNumber,
+  reference,
+}: {
+  verse: Verse;
+  fallbackNumber: number;
+  reference?: string;
+}) => (
   <View style={styles.verseContainer}>
     <Text style={styles.verseNumber}>{verse.verse || fallbackNumber}</Text>
     <View style={styles.verseTextBlock}>
+      {reference ? <Text style={styles.verseReference}>{reference}</Text> : null}
       <Text style={styles.verseText}>{verse.text || 'Texto indisponivel'}</Text>
     </View>
   </View>
@@ -692,25 +808,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 4,
     marginBottom: 8,
-    padding: 6,
-    borderRadius: 18,
+    padding: 4,
+    borderRadius: 15,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
   searchInput: {
     flex: 1,
-    minHeight: 44,
-    paddingHorizontal: 12,
+    minHeight: 36,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     color: colors.textPrimary,
     fontSize: 15,
   },
   searchButton: {
-    minWidth: 86,
-    minHeight: 44,
+    minWidth: 78,
+    minHeight: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
+    borderRadius: 11,
     backgroundColor: colors.primary,
   },
   searchButtonText: {
@@ -735,6 +852,19 @@ const styles = StyleSheet.create({
   clearText: {
     color: colors.accent,
     fontWeight: '900',
+  },
+  searchResultItem: {
+    paddingBottom: 7,
+    marginBottom: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  searchResultHint: {
+    alignSelf: 'flex-end',
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '900',
+    marginTop: -2,
   },
   breadcrumb: {
     flexDirection: 'row',
@@ -846,6 +976,12 @@ const styles = StyleSheet.create({
   },
   verseTextBlock: {
     flex: 1,
+  },
+  verseReference: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: 3,
   },
   verseText: {
     color: colors.textPrimary,
