@@ -10,12 +10,11 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
 } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../components/AppText';
 import { API_BASE_URL, createEventoInscricao, getEventoById, getEventos } from '../services/api';
 import { colors } from '../theme/colors';
 import { Evento } from '../types';

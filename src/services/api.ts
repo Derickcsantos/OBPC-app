@@ -17,6 +17,7 @@ import {
   Ministerio,
   Noticia,
   Oracao,
+  Pessoa,
   UpdateEventoPayload,
   UpdateLouvorPayload,
   UpdateMensagemPayload,
@@ -134,6 +135,9 @@ export const createMinisterio = (payload: CreateMinisterioPayload) =>
 export const updateMinisterio = (id: string, payload: UpdateMinisterioPayload) =>
   updateResource<Ministerio, UpdateMinisterioPayload>('/api/ministerios', id, payload);
 export const deleteMinisterio = (id: string) => deleteResource<Ministerio>('/api/ministerios', id);
+
+export const getPessoas = () => getResource<Pessoa>('/api/pessoas');
+export const getPessoaById = (id: string) => getResourceById<Pessoa>('/api/pessoas', id);
 
 export const getUsuarios = () => getResource<Usuario>('/api/usuarios');
 export const getUsuarioById = (id: string) => getResourceById<Usuario>('/api/usuarios', id);

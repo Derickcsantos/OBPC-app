@@ -4,14 +4,14 @@
     "slug": "ObpcApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/logo-completo.png",
+    "icon": "./src/assets/logo-completo.jpeg",
     "userInterfaceStyle": "light",
 
     "plugins": [
       [
         "expo-splash-screen",
         {
-          "image": "./src/assets/logo-completo.png",
+          "image": "./src/assets/logo-completo.jpeg",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -35,7 +35,7 @@
       "versionCode": 1,
 
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/logo-completo.png",
+        "foregroundImage": "./src/assets/logo-completo.jpeg",
         "backgroundColor": "#ffffff"
       },
 
@@ -45,7 +45,7 @@
     },
 
     "web": {
-      "favicon": "./src/assets/logo-completo.png"
+      "favicon": "./src/assets/logo-completo.jpeg"
     },
 
     "extra": {

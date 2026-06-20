@@ -6,10 +6,10 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { AppText as Text } from '../components/AppText';
 import { checkHealth } from '../services/api';
 import { colors } from '../theme/colors';
 import BibleIcon from '../assets/books-study-learning-education-reading-library-svgrepo-com.svg';
@@ -217,9 +217,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 22,
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.homeShortcutBackground,
   },
   shortcutIcon: {
     color: colors.primary,

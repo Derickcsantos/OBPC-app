@@ -5,11 +5,10 @@ import {
   PanResponder,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../components/AppText';
 import { getBibleVersions, getBookVerses, getBooks, getChapters, getVerses, searchBible } from '../services/api';
 import { colors } from '../theme/colors';
 import { BibleVersion, Book, Chapter, Verse } from '../types';

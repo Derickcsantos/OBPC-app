@@ -1,20 +1,30 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
+  Image,
   ImageBackground,
   Linking,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { AppText as Text } from '../components/AppText';
 import { getMinisterios } from '../services/api';
 import { colors } from '../theme/colors';
 import { Ministerio } from '../types';
 
 const logo = require('../../logo.jpg');
+const carouselWidth = Dimensions.get('window').width - 36;
+
+const getMinisterioImage = (ministerio: Ministerio) =>
+  ministerio.fotos
+    ?.filter(foto => Boolean(foto.url_imagem))
+    .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))[0]?.url_imagem ??
+  ministerio.imagem_url ??
+  null;
 
 const openLink = async (url?: string | null) => {
   if (!url || !url.startsWith('http')) {
@@ -90,7 +100,7 @@ export const MinisteriosScreen = () => {
                 onPress={() => setSelectedMinisterio(item)}
               >
                 <ImageBackground
-                  source={item.imagem_url ? { uri: item.imagem_url } : logo}
+                  source={getMinisterioImage(item) ? { uri: getMinisterioImage(item)! } : logo}
                   style={styles.cardCover}
                   imageStyle={styles.cardCoverImage}
                   resizeMode="cover"
@@ -124,19 +134,11 @@ const MinisterioDetail = ({ ministerio, onBack }: { ministerio: Ministerio; onBa
       <Text style={styles.backButtonText}>Voltar</Text>
     </TouchableOpacity>
 
-    <ImageBackground
-      source={ministerio.imagem_url ? { uri: ministerio.imagem_url } : logo}
-      style={styles.detailCover}
-      imageStyle={styles.detailCoverImage}
-      resizeMode="cover"
-    >
-      <View style={styles.detailOverlay}>
-        <Text style={styles.detailKicker}>Ministerio</Text>
-        <Text style={styles.detailTitle}>{ministerio.nome_ministerio || 'Ministerio'}</Text>
-      </View>
-    </ImageBackground>
+    <MinistryPhotoCarousel ministerio={ministerio} />
 
     <View style={styles.detailBody}>
+      <Text style={styles.detailKicker}>Ministério</Text>
+      <Text style={styles.detailTitle}>{ministerio.nome_ministerio || 'Ministério'}</Text>
       <Text style={styles.detailDescription}>{ministerio.descricao_ministerio || 'Descricao em breve.'}</Text>
 
       {ministerio.url_ministerio ? (
@@ -147,6 +149,43 @@ const MinisterioDetail = ({ ministerio, onBack }: { ministerio: Ministerio; onBa
     </View>
   </View>
 );
+
+const MinistryPhotoCarousel = ({ ministerio }: { ministerio: Ministerio }) => {
+  const photos = (ministerio.fotos ?? [])
+    .filter(photo => Boolean(photo.url_imagem))
+    .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+  const imageUrls = photos.map(photo => photo.url_imagem);
+
+  if (!imageUrls.length && ministerio.imagem_url) {
+    imageUrls.push(ministerio.imagem_url);
+  }
+
+  if (!imageUrls.length) {
+    return <Image source={logo} style={styles.detailCover} resizeMode="cover" />;
+  }
+
+  return (
+    <View>
+      <ScrollView
+        horizontal
+        pagingEnabled
+        nestedScrollEnabled
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.photoCarousel}
+      >
+        {imageUrls.map((url, index) => (
+          <Image
+            key={`${url}-${index}`}
+            source={{ uri: url }}
+            style={styles.carouselImage}
+            resizeMode="cover"
+          />
+        ))}
+      </ScrollView>
+      {imageUrls.length > 1 ? <Text style={styles.photoHint}>Deslize para ver as {imageUrls.length} fotos</Text> : null}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -261,28 +300,35 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   detailCover: {
+    width: carouselWidth,
     height: 250,
     overflow: 'hidden',
     borderRadius: 24,
     backgroundColor: colors.primary,
   },
-  detailCoverImage: {
-    opacity: 0.62,
+  photoCarousel: {
+    borderRadius: 24,
+    overflow: 'hidden',
   },
-  detailOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: 20,
-    backgroundColor: 'rgba(11,30,24,0.48)',
+  carouselImage: {
+    width: carouselWidth,
+    height: 250,
+    backgroundColor: colors.surfaceMuted,
+  },
+  photoHint: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
   },
   detailKicker: {
-    color: colors.accentSoft,
+    color: colors.accent,
     fontSize: 12,
     fontWeight: '900',
     textTransform: 'uppercase',
   },
   detailTitle: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 30,
     fontWeight: '900',
     marginTop: 4,
@@ -299,6 +345,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 16,
     lineHeight: 24,
+    marginTop: 12,
   },
   openButton: {
     minHeight: 52,

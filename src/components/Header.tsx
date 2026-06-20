@@ -1,6 +1,7 @@
 import React from 'react';
-import { Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
 
 interface HeaderProps {
@@ -41,8 +42,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   iconButton: {
     width: 44,

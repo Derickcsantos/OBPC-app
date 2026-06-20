@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '../components/AppText';
 import { colors } from '../theme/colors';
 
 const logo = require('../../logo.jpg');

@@ -76,6 +76,27 @@ export interface Ministerio {
   descricao_ministerio: string;
   url_ministerio?: string | null;
   imagem_url?: string | null;
+  fotos?: FotoMinisterio[];
+}
+
+export interface FotoMinisterio {
+  foto_id?: string;
+  foto_ministerio_id?: string;
+  ministerio_id?: string;
+  url_imagem: string;
+  ordem?: number | null;
+}
+
+export interface Pessoa {
+  pessoa_id: string;
+  url_imagem?: string | null;
+  nome: string;
+  cargo: string;
+  sobre: string;
+  telefone?: string | null;
+  email?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Usuario {

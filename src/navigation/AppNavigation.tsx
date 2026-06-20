@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
-import { Image, ImageSourcePropType, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageSourcePropType, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppText as Text } from '../components/AppText';
 import { Header } from '../components/Header';
 import BibleIcon from '../assets/books-study-learning-education-reading-library-svgrepo-com.svg';
 import CalendarIcon from '../assets/calendar-svgrepo-com.svg';
 import PrayerIcon from '../assets/hands-pray-svgrepo-com.svg';
 import MinistryIcon from '../assets/heart-svgrepo-com.svg';
 import { BibliaScreen } from '../screens/BibliaScreen';
+import { ConfiguracoesScreen } from '../screens/ConfiguracoesScreen';
 import { EventosScreen } from '../screens/EventosScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MinisteriosScreen } from '../screens/MinisteriosScreen';
 import { OracaoScreen } from '../screens/OracaoScreen';
+import { PessoaScreen } from '../screens/PessoaScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SobreScreen } from '../screens/SobreScreen';
 import { colors } from '../theme/colors';
+import { Pessoa } from '../types';
 
-type AppRoute = 'Inicio' | 'Ministerios' | 'Oracao' | 'Biblia' | 'Eventos' | 'Sobre' | 'Perfil';
-type TabRoute = Exclude<AppRoute, 'Perfil'>;
+type AppRoute = 'Inicio' | 'Ministerios' | 'Oracao' | 'Biblia' | 'Eventos' | 'Sobre' | 'Perfil' | 'Configuracoes' | 'Pessoa';
+type TabRoute = 'Inicio' | 'Ministerios' | 'Oracao' | 'Biblia' | 'Eventos';
 type TabIcon = React.FC<{ width?: number; height?: number; opacity?: number; color?: string }>;
 
 const logoIcon = require('../../logo.jpg') as ImageSourcePropType;
@@ -37,6 +41,7 @@ const menuItems: Array<{ key: AppRoute; label: string }> = [
   { key: 'Eventos', label: 'Eventos' },
   { key: 'Sobre', label: 'Sobre' },
   { key: 'Perfil', label: 'Perfil' },
+  { key: 'Configuracoes', label: 'Configurações' },
 ];
 
 const titles: Record<AppRoute, string> = {
@@ -47,11 +52,14 @@ const titles: Record<AppRoute, string> = {
   Eventos: 'Eventos',
   Sobre: 'Sobre',
   Perfil: 'Perfil',
+  Configuracoes: 'Configurações',
+  Pessoa: 'Pessoa',
 };
 
 export const AppNavigation = () => {
   const [currentRoute, setCurrentRoute] = useState<AppRoute>('Inicio');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<Pessoa | null>(null);
 
   const navigate = (route: AppRoute) => {
     setCurrentRoute(route);
@@ -71,9 +79,29 @@ export const AppNavigation = () => {
       case 'Eventos':
         return <EventosScreen />;
       case 'Sobre':
-        return <SobreScreen />;
+        return (
+          <SobreScreen
+            onSelectPerson={person => {
+              setSelectedPerson(person);
+              navigate('Pessoa');
+            }}
+          />
+        );
       case 'Perfil':
         return <ProfileScreen />;
+      case 'Configuracoes':
+        return <ConfiguracoesScreen />;
+      case 'Pessoa':
+        return selectedPerson ? (
+          <PessoaScreen pessoa={selectedPerson} onBack={() => navigate('Sobre')} />
+        ) : (
+          <SobreScreen
+            onSelectPerson={person => {
+              setSelectedPerson(person);
+              navigate('Pessoa');
+            }}
+          />
+        );
       default:
         return <HomeScreen onNavigate={navigate} />;
     }

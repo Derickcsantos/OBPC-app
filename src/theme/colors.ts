@@ -16,4 +16,5 @@ export const colors = {
   cardShadow: '#24180A',
   white: '#FFFFFF',
   black: '#111111',
+  homeShortcutBackground: 'rgb(247, 241, 232)',
 };

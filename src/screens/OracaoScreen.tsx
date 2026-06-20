@@ -8,11 +8,10 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../components/AppText';
 import { getOracoes, postOracao } from '../services/api';
 import { colors } from '../theme/colors';
 import { Oracao } from '../types';
