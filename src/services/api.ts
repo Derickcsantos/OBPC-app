@@ -27,9 +27,10 @@ import {
   Usuario,
   Verse,
 } from '../types';
+import type { AuthSession } from '../types/auth';
 import { enqueueValue, getCachedValue, getQueue, isOnline, isWifi, setCachedValue, setQueue } from './offlineStorage';
 
-export const API_BASE_URL = 'https://obpc.derickcampossantos1.workers.dev';
+export const API_BASE_URL = 'http://localhost:3000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -39,6 +40,23 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+export const setApiAccessToken = (accessToken: string | null) => {
+  if (accessToken) {
+    api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+    return;
+  }
+
+  delete api.defaults.headers.common.Authorization;
+};
+
+export const googleLogin = async (idToken: string): Promise<AuthSession> => {
+  const response = await api.post<AuthSession>('/api/auth/google', {
+    id_token: idToken,
+  });
+
+  return response.data;
+};
 
 export const extractData = <T>(response: AxiosResponse | { data?: unknown }): T => {
   const body = response?.data as { data?: T } | T | undefined;

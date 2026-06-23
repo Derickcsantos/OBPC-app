@@ -21,9 +21,11 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-google-signin/google-signin": "^16.1.2",
     "axios": "^1.7.2",
     "expo": "~55.0.26",
     "expo-network": "~55.0.14",
+    "expo-secure-store": "~55.0.14",
     "expo-splash-screen": "~55.0.21",
     "expo-status-bar": "~55.0.6",
     "react": "19.2.0",

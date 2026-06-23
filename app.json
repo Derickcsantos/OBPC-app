@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./src/assets/logo-completo.jpeg",
     "userInterfaceStyle": "light",
-
     "plugins": [
       [
         "expo-splash-screen",
@@ -16,38 +15,38 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.834990693788-n2fg81bltsntguugdca3j0i11i8ejb6h"
+        }
+      ],
+      "expo-secure-store"
     ],
-
     "assetBundlePatterns": [
       "**/*"
     ],
-
     "ios": {
       "userInterfaceStyle": "light",
       "supportsTablet": true,
       "bundleIdentifier": "com.obpcapp"
     },
-
     "android": {
       "userInterfaceStyle": "light",
       "package": "com.obpcapp",
       "versionCode": 1,
-
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/logo-completo.jpeg",
         "backgroundColor": "#ffffff"
       },
-
       "permissions": [
         "INTERNET"
       ]
     },
-
     "web": {
       "favicon": "./src/assets/logo-completo.jpeg"
     },
-
     "extra": {
       "eas": {
         "projectId": "0acf1d60-e8f8-4c66-8180-19dc645565f3"

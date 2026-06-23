@@ -1,7 +1,8 @@
 import React from 'react';
-import { Pressable, StatusBar, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText as Text } from './AppText';
+import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 
 interface HeaderProps {
@@ -11,6 +12,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ title, onMenuPress, onProfilePress }) => {
+  const { user } = useAuth();
+
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
@@ -24,7 +27,11 @@ export const Header: React.FC<HeaderProps> = ({ title, onMenuPress, onProfilePre
         </Text>
 
         <Pressable style={styles.iconButton} onPress={onProfilePress}>
-          <Text style={styles.profileText}>U</Text>
+          {user?.avatar_url ? (
+            <Image source={{ uri: user.avatar_url }} style={styles.profileImage} />
+          ) : (
+            <Text style={styles.profileText}>{user?.nome_usuario?.trim().charAt(0).toUpperCase() || 'U'}</Text>
+          )}
         </Pressable>
       </View>
     </SafeAreaView>
@@ -67,6 +74,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     borderRadius: 15,
     backgroundColor: colors.homeShortcutBackground,
+  },
+  profileImage: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.surfaceMuted,
   },
   title: {
     flex: 1,
