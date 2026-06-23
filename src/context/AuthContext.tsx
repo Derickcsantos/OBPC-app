@@ -72,6 +72,14 @@ const clearStoredSession = async () => {
 
 const getSignInErrorMessage = (error: unknown): string => {
   if (isErrorWithCode(error)) {
+    if (error.code === 'DEVELOPER_ERROR' || error.message?.includes('DEVELOPER_ERROR')) {
+      return [
+        'Configuração do Google Sign-In inválida no Android.',
+        'Confira no Google Cloud/Firebase se existe um OAuth Client Android com package com.obpcapp e o SHA-1 do certificado usado para assinar este APK.',
+        'Confira também se EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID é um Client ID do tipo Aplicativo da Web.',
+      ].join('\n\n');
+    }
+
     if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
       return 'O Google Play Services não está disponível ou precisa ser atualizado.';
     }

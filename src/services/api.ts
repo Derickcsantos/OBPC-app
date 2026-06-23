@@ -30,7 +30,7 @@ import {
 import type { AuthSession } from '../types/auth';
 import { enqueueValue, getCachedValue, getQueue, isOnline, isWifi, setCachedValue, setQueue } from './offlineStorage';
 
-export const API_BASE_URL = 'http://localhost:3000';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL?.trim() || 'https://obpc.derickcampossantos1.workers.dev';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
