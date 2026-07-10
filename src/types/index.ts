@@ -14,6 +14,81 @@ export interface Mensagem {
   texto_mensagem: string;
 }
 
+export interface PlanoEstudo {
+  plano_estudo_id: string;
+  titulo: string;
+  slug: string;
+  descricao?: string | null;
+  tipo?: string | null;
+  duracao_dias?: number | null;
+  ativo?: boolean;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string;
+  updated_at?: string;
+  quantidade_dias?: number | null;
+}
+
+export interface PlanoEstudoDia {
+  plano_estudo_dia_id?: string;
+  plano_estudo_id?: string;
+  dia: number;
+  titulo?: string | null;
+  quantidade_leituras?: number | null;
+}
+
+export interface PlanoEstudoVersiculo {
+  id?: number;
+  version?: string;
+  testament?: number;
+  book?: number;
+  book_name?: string;
+  book_abbrev?: string;
+  chapter?: number;
+  verse: number;
+  text: string;
+  global_order?: number;
+}
+
+export interface PlanoEstudoTexto {
+  version?: string;
+  testament?: number;
+  book?: number;
+  book_name?: string;
+  book_abbrev?: string;
+  chapter?: number;
+  verse_start?: number | null;
+  verse_end?: number | null;
+  verses?: PlanoEstudoVersiculo[];
+  chapter_text?: string | null;
+}
+
+export interface PlanoEstudoLeitura {
+  plano_estudo_leitura_id?: string;
+  plano_estudo_dia_id?: string;
+  ordem?: number | null;
+  book_id?: number | null;
+  chapter?: number | null;
+  verse_start?: number | null;
+  verse_end?: number | null;
+  versao?: string | null;
+  versao_original?: string | null;
+  referencia?: string | null;
+  texto?: PlanoEstudoTexto | null;
+}
+
+export interface PlanoEstudoDetalhe {
+  plano: PlanoEstudo;
+  dias: PlanoEstudoDia[];
+}
+
+export interface PlanoEstudoDiaTextos {
+  plano: PlanoEstudo;
+  dia: PlanoEstudoDia & {
+    versao?: string | null;
+    leituras?: PlanoEstudoLeitura[];
+  };
+}
+
 export interface Evento {
   evento_id: string;
   nome_evento: string;

@@ -11,6 +11,7 @@ import { BibliaScreen } from '../screens/BibliaScreen';
 import { ConfiguracoesScreen } from '../screens/ConfiguracoesScreen';
 import { EventosScreen } from '../screens/EventosScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { MensagensScreen } from '../screens/MensagensScreen';
 import { MinisteriosScreen } from '../screens/MinisteriosScreen';
 import { OracaoScreen } from '../screens/OracaoScreen';
 import { PessoaScreen } from '../screens/PessoaScreen';
@@ -19,7 +20,7 @@ import { SobreScreen } from '../screens/SobreScreen';
 import { colors } from '../theme/colors';
 import { Pessoa } from '../types';
 
-type AppRoute = 'Inicio' | 'Ministerios' | 'Oracao' | 'Biblia' | 'Eventos' | 'Sobre' | 'Perfil' | 'Configuracoes' | 'Pessoa';
+type AppRoute = 'Inicio' | 'Ministerios' | 'Oracao' | 'Biblia' | 'Eventos' | 'Mensagens' | 'Sobre' | 'Perfil' | 'Configuracoes' | 'Pessoa';
 type TabRoute = 'Inicio' | 'Ministerios' | 'Oracao' | 'Biblia' | 'Eventos';
 type TabIcon = React.FC<{ width?: number; height?: number; opacity?: number; color?: string }>;
 
@@ -39,6 +40,7 @@ const menuItems: Array<{ key: AppRoute; label: string }> = [
   { key: 'Oracao', label: 'Orações' },
   { key: 'Biblia', label: 'Bíblia' },
   { key: 'Eventos', label: 'Eventos' },
+  { key: 'Mensagens', label: 'Mensagens' },
   { key: 'Sobre', label: 'Sobre' },
   { key: 'Perfil', label: 'Perfil' },
   { key: 'Configuracoes', label: 'Configurações' },
@@ -50,6 +52,7 @@ const titles: Record<AppRoute, string> = {
   Oracao: 'Oracao',
   Biblia: 'Biblia',
   Eventos: 'Eventos',
+  Mensagens: 'Mensagens',
   Sobre: 'Sobre',
   Perfil: 'Perfil',
   Configuracoes: 'Configurações',
@@ -82,6 +85,8 @@ export const AppNavigation = () => {
         return <BibliaScreen onReadingModeChange={setBibleReadingMode} />;
       case 'Eventos':
         return <EventosScreen />;
+      case 'Mensagens':
+        return <MensagensScreen />;
       case 'Sobre':
         return (
           <SobreScreen

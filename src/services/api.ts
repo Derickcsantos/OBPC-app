@@ -18,6 +18,11 @@ import {
   Noticia,
   Oracao,
   Pessoa,
+  PlanoEstudo,
+  PlanoEstudoDetalhe,
+  PlanoEstudoDia,
+  PlanoEstudoDiaTextos,
+  PlanoEstudoLeitura,
   UpdateEventoPayload,
   UpdateLouvorPayload,
   UpdateMensagemPayload,
@@ -30,7 +35,9 @@ import {
 import type { AuthSession } from '../types/auth';
 import { enqueueValue, getCachedValue, getQueue, isOnline, isWifi, setCachedValue, setQueue } from './offlineStorage';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL?.trim() || 'https://obpc.derickcampossantos1.workers.dev';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL?.trim() || 'http://localhost:3000';
+
+// https://obpc.derickcampossantos1.workers.dev
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -69,6 +76,34 @@ export const extractData = <T>(response: AxiosResponse | { data?: unknown }): T 
 };
 
 const normalizeArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+
+const getStudyPlanKey = (plano: PlanoEstudo) => plano.slug || plano.plano_estudo_id;
+
+const normalizePlanoEstudoDetalhe = (value: unknown): PlanoEstudoDetalhe => {
+  const data = (value ?? {}) as Partial<PlanoEstudoDetalhe> & PlanoEstudo & {
+    dias?: PlanoEstudoDia[];
+    plano_estudo_dias?: PlanoEstudoDia[];
+  };
+  const plano = (data.plano ?? data) as PlanoEstudo;
+  const dias = normalizeArray<PlanoEstudoDia>(data.dias ?? data.plano_estudo_dias);
+
+  return { plano, dias };
+};
+
+const normalizePlanoEstudoDiaTextos = (value: unknown): PlanoEstudoDiaTextos => {
+  const data = (value ?? {}) as Partial<PlanoEstudoDiaTextos> & {
+    plano?: PlanoEstudo;
+    dia?: PlanoEstudoDiaTextos['dia'];
+  };
+
+  return {
+    plano: (data.plano ?? {}) as PlanoEstudo,
+    dia: {
+      ...((data.dia ?? {}) as PlanoEstudoDiaTextos['dia']),
+      leituras: normalizeArray<PlanoEstudoLeitura>(data.dia?.leituras),
+    },
+  };
+};
 
 const uniqueBy = <T>(items: T[], getKey: (item: T, index: number) => string): T[] => {
   const seen = new Set<string>();
@@ -200,6 +235,57 @@ export const createMensagem = (payload: CreateMensagemPayload) =>
 export const updateMensagem = (id: string, payload: UpdateMensagemPayload) =>
   updateResource<Mensagem, UpdateMensagemPayload>('/api/mensagens', id, payload);
 export const deleteMensagem = (id: string) => deleteResource<Mensagem>('/api/mensagens', id);
+
+export const getPlanosEstudo = async (): Promise<PlanoEstudo[]> => {
+  return cachedGet('/api/planos-estudo', async () => {
+    const response = await api.get('/api/planos-estudo');
+    return uniqueBy(
+      normalizeArray<PlanoEstudo>(extractData<unknown>(response)).filter(plano => plano.ativo !== false),
+      (item, index) => getStudyPlanKey(item) || `${item.titulo}-${index}`,
+    );
+  });
+};
+
+export const getPlanoEstudo = async (plano: string): Promise<PlanoEstudoDetalhe> => {
+  const identifier = encodeURIComponent(plano);
+
+  return cachedGet(`/api/planos-estudo/${identifier}`, async () => {
+    const response = await api.get(`/api/planos-estudo/${identifier}`);
+    const detalhe = normalizePlanoEstudoDetalhe(extractData<unknown>(response));
+
+    return {
+      ...detalhe,
+      dias: uniqueBy(
+        detalhe.dias
+          .filter(dia => typeof dia.dia === 'number')
+          .sort((a, b) => a.dia - b.dia),
+        (item, index) => `${item.plano_estudo_dia_id ?? item.dia ?? index}`,
+      ),
+    };
+  });
+};
+
+export const getPlanoEstudoDiaTextos = async (plano: string, dia: number, version = 'nvi'): Promise<PlanoEstudoDiaTextos> => {
+  const identifier = encodeURIComponent(plano);
+
+  return cachedGet(`/api/planos-estudo/${identifier}/dias/${dia}/textos:${version}`, async () => {
+    const response = await api.get(`/api/planos-estudo/${identifier}/dias/${dia}/textos`, {
+      params: { version },
+    });
+    const detalhe = normalizePlanoEstudoDiaTextos(extractData<unknown>(response));
+
+    return {
+      ...detalhe,
+      dia: {
+        ...detalhe.dia,
+        leituras: uniqueBy(
+          normalizeArray<PlanoEstudoLeitura>(detalhe.dia.leituras).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
+          (item, index) => `${item.plano_estudo_leitura_id ?? item.referencia ?? index}`,
+        ),
+      },
+    };
+  });
+};
 
 export const getOracoes = () => getResource<Oracao>('/api/oracoes');
 export const getOracaoById = (id: string) => getResourceById<Oracao>('/api/oracoes', id);
