@@ -189,6 +189,8 @@ export interface Oracao {
   mostrar_grupo?: boolean;
   aceita_ligacao?: boolean;
   status?: string;
+  orado?: boolean;
+  orado_por_mim?: boolean;
 }
 
 export interface BibleVersion {

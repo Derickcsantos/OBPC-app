@@ -175,7 +175,7 @@ export const checkHealth = async (): Promise<{ status: string }> => {
     const response = await api.get('/health');
     await flushPendingWrites();
     return response.data;
-  } catch (error) {
+  } catch {
     const online = await isOnline();
     return { status: online ? 'indisponivel' : 'offline' };
   }
@@ -188,6 +188,16 @@ export const createMinisterio = (payload: CreateMinisterioPayload) =>
 export const updateMinisterio = (id: string, payload: UpdateMinisterioPayload) =>
   updateResource<Ministerio, UpdateMinisterioPayload>('/api/ministerios', id, payload);
 export const deleteMinisterio = (id: string) => deleteResource<Ministerio>('/api/ministerios', id);
+export const getMeusMinisteriosInteresse = async (): Promise<Ministerio[]> => {
+  const response = await api.get('/api/usuarios/me/ministerios-interesse');
+  return normalizeArray<Ministerio>(extractData<unknown>(response));
+};
+export const adicionarMinisterioInteresse = async (id: string): Promise<void> => {
+  await api.post(`/api/ministerios/${id}/interesse`);
+};
+export const removerMinisterioInteresse = async (id: string): Promise<void> => {
+  await api.delete(`/api/ministerios/${id}/interesse`);
+};
 
 export const getPessoas = () => getResource<Pessoa>('/api/pessoas');
 export const getPessoaById = (id: string) => getResourceById<Pessoa>('/api/pessoas', id);
@@ -295,7 +305,7 @@ export const postOracao = async (oracao: Oracao) => {
     await mergeCachedOracao(created);
     await flushPendingWrites();
     return created;
-  } catch (error) {
+  } catch {
     const pendingOracao = {
       ...oracao,
       oracao_id: oracao.oracao_id ?? `offline-${Date.now()}`,
@@ -310,6 +320,9 @@ export const postOracao = async (oracao: Oracao) => {
 export const updateOracao = (id: string, payload: Partial<Oracao>) =>
   updateResource<Oracao, Partial<Oracao>>('/api/oracoes', id, payload);
 export const deleteOracao = (id: string) => deleteResource<Oracao>('/api/oracoes', id);
+export const marcarOracaoComoOrada = async (id: string): Promise<void> => {
+  await api.post(`/api/oracoes/${id}/orado`);
+};
 
 export const getBibleVersions = async (): Promise<BibleVersion[]> => {
   return cachedGet('biblia:versions', async () => {
@@ -506,7 +519,8 @@ export const flushPendingWrites = async () => {
 
   for (const pending of pendingOracoes) {
     try {
-      const { oracao_id: _offlineId, ...payload } = pending;
+      const payload = { ...pending };
+      delete payload.oracao_id;
       const created = await createResource<Oracao, Oracao>('/api/oracoes', payload);
       await mergeCachedOracao(created);
     } catch {

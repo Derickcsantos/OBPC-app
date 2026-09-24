@@ -1,3 +1,5 @@
+import { Plus, ChevronLeft, Check } from 'lucide-react-native';
+import { Icon } from '../components/Icon';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,14 +13,20 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { AppText as Text, AppTextInput as TextInput } from '../components/AppText';
-import { getOracoes, postOracao } from '../services/api';
+import {
+  AppText as Text,
+  AppTextInput as TextInput,
+} from '../components/AppText';
+import { getOracoes, marcarOracaoComoOrada, postOracao } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
+import { spacing, typography, radius } from '../theme/tokens';
 import { Oracao } from '../types';
 
 type OracaoView = 'list' | 'detail' | 'create';
 
 export const OracaoScreen = () => {
+  const { user } = useAuth();
   const [view, setView] = useState<OracaoView>('list');
   const [selectedOracao, setSelectedOracao] = useState<Oracao | null>(null);
   const [nome, setNome] = useState('');
@@ -29,6 +37,8 @@ export const OracaoScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [loadingList, setLoadingList] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [orandoIds, setOrandoIds] = useState<Set<string>>(new Set());
+  const [oradosIds, setOradosIds] = useState<Set<string>>(new Set());
 
   const loadOracoes = useCallback(async () => {
     try {
@@ -71,7 +81,10 @@ export const OracaoScreen = () => {
 
   const handleSubmit = async () => {
     if (!nome.trim() || !pedido.trim()) {
-      Alert.alert('Campos obrigatorios', 'Preencha seu nome e o pedido de oracao.');
+      Alert.alert(
+        'Campos obrigatorios',
+        'Preencha seu nome e o pedido de oracao.',
+      );
       return;
     }
 
@@ -85,7 +98,10 @@ export const OracaoScreen = () => {
         status: 'em andamento',
       });
 
-      Alert.alert('Pedido enviado', 'Recebemos seu pedido e estaremos em oracao.');
+      Alert.alert(
+        'Pedido enviado',
+        'Recebemos seu pedido e estaremos em oracao.',
+      );
       resetForm();
       setView('list');
       loadOracoes();
@@ -102,19 +118,64 @@ export const OracaoScreen = () => {
     loadOracoes();
   };
 
+  const handleOrado = async (oracao: Oracao) => {
+    const id = oracao.oracao_id;
+    if (!user) {
+      Alert.alert('Entre na sua conta', 'Faca login no perfil para marcar que orou.');
+      return;
+    }
+    if (!id || id.startsWith('offline-') || orandoIds.has(id) || oradosIds.has(id) || oracao.orado_por_mim || oracao.orado) return;
+
+    setOrandoIds(current => new Set(current).add(id));
+    try {
+      await marcarOracaoComoOrada(id);
+      setOradosIds(current => new Set(current).add(id));
+    } catch (error) {
+      console.error('Erro ao marcar pedido como orado:', error);
+      Alert.alert('Nao foi possivel marcar', 'Verifique sua conexao e tente novamente.');
+    } finally {
+      setOrandoIds(current => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
   if (view === 'detail' && selectedOracao) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <TopBar title="Pedido de oracao" onBack={goToList} />
         <View style={styles.detailCard}>
-          <Text style={styles.detailStatus}>{selectedOracao.status || 'em andamento'}</Text>
-          <Text style={styles.detailName}>{selectedOracao.nome_pedido || 'Pedido de oracao'}</Text>
-          <Text style={styles.detailText}>{selectedOracao.descricao_pedido || 'Sem descricao.'}</Text>
+          <Text style={styles.detailStatus}>
+            {selectedOracao.status || 'em andamento'}
+          </Text>
+          <Text style={styles.detailName}>
+            {selectedOracao.nome_pedido || 'Pedido de oracao'}
+          </Text>
+          <Text style={styles.detailText}>
+            {selectedOracao.descricao_pedido || 'Sem descricao.'}
+          </Text>
 
           <View style={styles.detailMeta}>
-            <InfoPill label={selectedOracao.mostrar_grupo ? 'Visivel ao grupo' : 'Pedido reservado'} />
-            <InfoPill label={selectedOracao.aceita_ligacao ? 'Aceita ligacao' : 'Sem ligacao'} />
+            <InfoPill
+              label={
+                selectedOracao.mostrar_grupo
+                  ? 'Visivel ao grupo'
+                  : 'Pedido reservado'
+              }
+            />
+            <InfoPill
+              label={
+                selectedOracao.aceita_ligacao ? 'Aceita ligacao' : 'Sem ligacao'
+              }
+            />
           </View>
+          <OradoButton oracao={selectedOracao} loading={Boolean(selectedOracao.oracao_id && orandoIds.has(selectedOracao.oracao_id))} marked={Boolean(selectedOracao.orado || selectedOracao.orado_por_mim || (selectedOracao.oracao_id && oradosIds.has(selectedOracao.oracao_id)))} onPress={() => handleOrado(selectedOracao)} />
         </View>
       </ScrollView>
     );
@@ -122,8 +183,14 @@ export const OracaoScreen = () => {
 
   if (view === 'create') {
     return (
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.container}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <TopBar title="Novo pedido" onBack={goToList} />
 
           <View style={styles.form}>
@@ -148,15 +215,30 @@ export const OracaoScreen = () => {
               textAlignVertical="top"
             />
 
-            <ToggleRow label="Mostrar no grupo de oracao" value={mostrarGrupo} onValueChange={setMostrarGrupo} />
-            <ToggleRow label="Aceito receber uma ligacao" value={aceitaLigacao} onValueChange={setAceitaLigacao} />
+            <ToggleRow
+              label="Mostrar no grupo de oracao"
+              value={mostrarGrupo}
+              onValueChange={setMostrarGrupo}
+            />
+            <ToggleRow
+              label="Aceito receber uma ligacao"
+              value={aceitaLigacao}
+              onValueChange={setAceitaLigacao}
+            />
 
             <TouchableOpacity
-              style={[styles.primaryButton, submitting && styles.buttonDisabled]}
+              style={[
+                styles.primaryButton,
+                submitting && styles.buttonDisabled,
+              ]}
               onPress={handleSubmit}
               disabled={submitting}
             >
-              {submitting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryButtonText}>Enviar pedido</Text>}
+              {submitting ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.primaryButtonText}>Enviar pedido</Text>
+              )}
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -169,14 +251,22 @@ export const OracaoScreen = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
       >
         <View style={styles.listHeader}>
           <View>
             <Text style={styles.kicker}>Intercessao</Text>
             <Text style={styles.title}>Pedidos de oracao</Text>
           </View>
-          {loadingList ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+          {loadingList ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : null}
         </View>
 
         {oracoes.length ? (
@@ -191,21 +281,30 @@ export const OracaoScreen = () => {
                 <Text style={styles.prayerName} numberOfLines={1}>
                   {oracao.nome_pedido || 'Pedido de oracao'}
                 </Text>
-                <Text style={styles.prayerStatus}>{oracao.status || 'em andamento'}</Text>
+                <Text style={styles.prayerStatus}>
+                  {oracao.status || 'em andamento'}
+                </Text>
               </View>
               <Text style={styles.prayerText} numberOfLines={3}>
                 {oracao.descricao_pedido || 'Toque para ver detalhes.'}
               </Text>
               <Text style={styles.openText}>Abrir pedido</Text>
+              <OradoButton oracao={oracao} loading={Boolean(oracao.oracao_id && orandoIds.has(oracao.oracao_id))} marked={Boolean(oracao.orado || oracao.orado_por_mim || (oracao.oracao_id && oradosIds.has(oracao.oracao_id)))} onPress={() => handleOrado(oracao)} compact />
             </TouchableOpacity>
           ))
         ) : (
-          <Text style={styles.emptyText}>Nenhum pedido de oracao no momento.</Text>
+          <Text style={styles.emptyText}>
+            Nenhum pedido de oracao no momento.
+          </Text>
         )}
       </ScrollView>
 
-      <TouchableOpacity style={styles.floatingButton} activeOpacity={0.86} onPress={openCreate}>
-        <Text style={styles.floatingButtonIcon}>+</Text>
+      <TouchableOpacity
+        style={styles.floatingButton}
+        activeOpacity={0.86}
+        onPress={openCreate}
+      >
+        <Icon as={Plus} color={colors.white} style={styles.floatingButtonIcon} />
         <Text style={styles.floatingButtonText}>Novo pedido</Text>
       </TouchableOpacity>
     </View>
@@ -214,8 +313,13 @@ export const OracaoScreen = () => {
 
 const TopBar = ({ title, onBack }: { title: string; onBack: () => void }) => (
   <View style={styles.topBar}>
-    <TouchableOpacity style={styles.backButton} onPress={onBack}>
-      <Text style={styles.backButtonText}>‹</Text>
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel="Voltar"
+      style={styles.backButton}
+      onPress={onBack}
+    >
+      <Icon as={ChevronLeft} />
     </TouchableOpacity>
     <Text style={styles.topBarTitle}>{title}</Text>
     <View style={styles.backButtonPlaceholder} />
@@ -227,6 +331,22 @@ const InfoPill = ({ label }: { label: string }) => (
     <Text style={styles.infoPillText}>{label}</Text>
   </View>
 );
+
+const OradoButton = ({ oracao, loading, marked, onPress, compact = false }: { oracao: Oracao; loading: boolean; marked: boolean; onPress: () => void; compact?: boolean }) => {
+  const disabled = loading || marked || !oracao.oracao_id || oracao.oracao_id.startsWith('offline-');
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityState={{ disabled, selected: marked }}
+      style={[styles.prayedButton, compact && styles.prayedButtonCompact, marked && styles.prayedButtonMarked]}
+      disabled={disabled}
+      onPress={event => { event.stopPropagation(); onPress(); }}
+    >
+      {loading ? <ActivityIndicator size="small" color={colors.primary} /> : <Icon as={Check} size={17} color={colors.primary} />}
+      <Text style={styles.prayedButtonText}>{marked ? 'Voce orou' : 'Marcar como orado'}</Text>
+    </TouchableOpacity>
+  );
+};
 
 const ToggleRow = ({
   label,
@@ -240,6 +360,8 @@ const ToggleRow = ({
   <View style={styles.toggleRow}>
     <Text style={styles.toggleLabel}>{label}</Text>
     <Switch
+      accessibilityLabel={label}
+      {...(Platform.OS === 'web' ? { activeThumbColor: colors.primary } : {})}
       value={value}
       onValueChange={onValueChange}
       trackColor={{ false: colors.border, true: colors.primarySoft }}
@@ -254,8 +376,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   scrollContent: {
-    padding: 18,
-    paddingBottom: 108,
+    padding: spacing.page,
+    paddingBottom: 88,
   },
   listHeader: {
     flexDirection: 'row',
@@ -265,28 +387,21 @@ const styles = StyleSheet.create({
   },
   kicker: {
     color: colors.accent,
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontSize: typography.caption,
+    fontWeight: '600',
   },
   title: {
     color: colors.textPrimary,
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: typography.title,
+    fontWeight: '600',
     marginTop: 4,
   },
   prayerCard: {
-    padding: 18,
+    padding: spacing.md,
     marginBottom: 12,
-    borderRadius: 20,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: colors.cardShadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 2,
   },
   prayerHeader: {
     flexDirection: 'row',
@@ -297,67 +412,51 @@ const styles = StyleSheet.create({
   prayerName: {
     flex: 1,
     color: colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: typography.subtitle,
+    fontWeight: '600',
     paddingRight: 12,
   },
   prayerStatus: {
     color: colors.success,
-    fontSize: 10,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontSize: typography.caption,
+    fontWeight: '600',
   },
   prayerText: {
     color: colors.textSecondary,
-    fontSize: 14,
+    fontSize: typography.body,
     lineHeight: 21,
   },
   openText: {
     color: colors.accent,
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: typography.caption,
+    fontWeight: '600',
     marginTop: 12,
-    textTransform: 'uppercase',
   },
   emptyText: {
     color: colors.textSecondary,
-    padding: 18,
-    borderRadius: 18,
+    padding: spacing.md,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
   },
   floatingButton: {
     position: 'absolute',
     right: 18,
     bottom: 18,
-    minHeight: 56,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    borderRadius: 22,
+    paddingHorizontal: spacing.page,
+    borderRadius: radius.md,
     backgroundColor: colors.accent,
-    shadowColor: colors.cardShadow,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  floatingButtonIcon: {
-    color: colors.white,
-    fontSize: 24,
-    fontWeight: '900',
-    marginRight: 8,
-    marginTop: -2,
   },
   floatingButtonText: {
     color: colors.white,
-    fontSize: 14,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontSize: typography.body,
+    fontWeight: '600',
   },
   topBar: {
-    minHeight: 54,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -368,14 +467,8 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 16,
+    borderRadius: radius.md,
     backgroundColor: colors.primarySoft,
-  },
-  backButtonText: {
-    color: colors.primary,
-    fontSize: 34,
-    fontWeight: '700',
-    marginTop: -4,
   },
   backButtonPlaceholder: {
     width: 44,
@@ -384,80 +477,78 @@ const styles = StyleSheet.create({
   topBarTitle: {
     flex: 1,
     color: colors.textPrimary,
-    fontSize: 19,
-    fontWeight: '900',
+    fontSize: typography.heading,
+    fontWeight: '600',
     textAlign: 'center',
   },
   detailCard: {
-    padding: 22,
-    borderRadius: 24,
+    padding: spacing.md,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
   },
   detailStatus: {
     alignSelf: 'flex-start',
     color: colors.success,
-    fontSize: 11,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontSize: typography.caption,
+    fontWeight: '600',
+
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: radius.md,
     backgroundColor: colors.primarySoft,
     marginBottom: 16,
   },
   detailName: {
     color: colors.textPrimary,
-    fontSize: 26,
-    fontWeight: '900',
+    fontSize: typography.title,
+    fontWeight: '600',
   },
   detailText: {
     color: colors.textSecondary,
-    fontSize: 16,
+    fontSize: typography.subtitle,
     lineHeight: 25,
     marginTop: 14,
   },
   detailMeta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 20,
+    marginTop: spacing.section,
   },
   infoPill: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: radius.md,
     backgroundColor: colors.accentSoft,
     marginRight: 8,
     marginBottom: 8,
   },
   infoPillText: {
     color: colors.primary,
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: typography.caption,
+    fontWeight: '600',
   },
   form: {
-    padding: 18,
-    borderRadius: 22,
+    padding: spacing.md,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
   },
   label: {
     color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: typography.body,
+    fontWeight: '600',
     marginBottom: 8,
   },
   input: {
-    minHeight: 52,
+    minHeight: 44,
     backgroundColor: colors.inputBackground,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: radius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
+    fontSize: typography.body,
     color: colors.textPrimary,
     marginBottom: 16,
   },
@@ -465,7 +556,7 @@ const styles = StyleSheet.create({
     minHeight: 150,
   },
   toggleRow: {
-    minHeight: 54,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -475,16 +566,16 @@ const styles = StyleSheet.create({
   toggleLabel: {
     flex: 1,
     color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: typography.body,
+    fontWeight: '600',
     paddingRight: 12,
   },
   primaryButton: {
-    minHeight: 56,
+    minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 18,
-    borderRadius: 18,
+    marginTop: spacing.section,
+    borderRadius: radius.md,
     backgroundColor: colors.accent,
   },
   buttonDisabled: {
@@ -492,8 +583,22 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: colors.white,
-    fontSize: 15,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontSize: typography.body,
+    fontWeight: '600',
   },
+  prayedButton: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingHorizontal: 14,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+  },
+  prayedButtonCompact: { alignSelf: 'flex-start', marginTop: 12 },
+  prayedButtonMarked: { opacity: 0.65 },
+  prayedButtonText: { color: colors.primary, fontWeight: '600' },
+  floatingButtonIcon: { marginRight: 8 },
 });

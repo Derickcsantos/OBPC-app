@@ -6,18 +6,33 @@ import {
   TextInputProps,
   TextProps,
 } from 'react-native';
+import { typography } from '../theme/tokens';
 import { useAppearance } from '../context/AppearanceContext';
 
-const useScaledStyle = (style: TextProps['style'] | TextInputProps['style']) => {
+const useScaledStyle = (
+  style: TextProps['style'] | TextInputProps['style'],
+) => {
   const { fontSizeOffset } = useAppearance();
   const flattened = StyleSheet.flatten(style) ?? {};
-  const baseFontSize = typeof flattened.fontSize === 'number' ? flattened.fontSize : 14;
+  const baseFontSize =
+    typeof flattened.fontSize === 'number'
+      ? flattened.fontSize
+      : typography.body;
   const lineHeight =
     typeof flattened.lineHeight === 'number'
-      ? Math.max(flattened.lineHeight + fontSizeOffset, baseFontSize + fontSizeOffset)
+      ? Math.max(
+          flattened.lineHeight + fontSizeOffset,
+          baseFontSize + fontSizeOffset,
+        )
       : undefined;
 
-  return [style, { fontSize: Math.max(8, baseFontSize + fontSizeOffset), ...(lineHeight ? { lineHeight } : {}) }];
+  return [
+    style,
+    {
+      fontSize: Math.max(8, baseFontSize + fontSizeOffset),
+      ...(lineHeight ? { lineHeight } : {}),
+    },
+  ];
 };
 
 export const AppText = ({ style, ...props }: TextProps) => {

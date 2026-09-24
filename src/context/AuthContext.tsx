@@ -25,12 +25,106 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-GoogleSignin.configure({
-  iosClientId: GOOGLE_IOS_CLIENT_ID,
-  webClientId: GOOGLE_WEB_CLIENT_ID,
-  offlineAccess: false,
-  profileImageSize: 240,
-});
+if (Platform.OS !== 'web') {
+  GoogleSignin.configure({
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    offlineAccess: false,
+    profileImageSize: 240,
+  });
+}
+
+type GoogleCredentialResponse = { credential?: string };
+type GooglePromptNotification = {
+  isNotDisplayed: () => boolean;
+  isSkippedMoment: () => boolean;
+  isDismissedMoment: () => boolean;
+  getNotDisplayedReason?: () => string;
+  getSkippedReason?: () => string;
+  getDismissedReason?: () => string;
+};
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: {
+            client_id: string;
+            callback: (response: GoogleCredentialResponse) => void;
+            cancel_on_tap_outside?: boolean;
+            use_fedcm_for_prompt?: boolean;
+          }) => void;
+          prompt: (callback?: (notification: GooglePromptNotification) => void) => void;
+        };
+      };
+    };
+  }
+}
+
+let googleIdentityScriptPromise: Promise<void> | null = null;
+
+const loadGoogleIdentityScript = (): Promise<void> => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return Promise.reject(new Error('Login Google indisponivel neste ambiente.'));
+  }
+
+  if (window.google?.accounts.id) return Promise.resolve();
+  if (googleIdentityScriptPromise) return googleIdentityScriptPromise;
+
+  const scriptPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-obpc-google-identity]');
+    const script = existing ?? document.createElement('script');
+
+    script.addEventListener('load', () => resolve(), { once: true });
+    script.addEventListener('error', () => reject(new Error('Nao foi possivel carregar o login Google.')), { once: true });
+
+    if (!existing) {
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.dataset.obpcGoogleIdentity = 'true';
+      document.head.appendChild(script);
+    }
+  }).catch(error => {
+    googleIdentityScriptPromise = null;
+    throw error;
+  });
+
+  googleIdentityScriptPromise = scriptPromise;
+  return scriptPromise;
+};
+
+const getGoogleWebIdToken = async (): Promise<string> => {
+  await loadGoogleIdentityScript();
+
+  return new Promise((resolve, reject) => {
+    const googleIdentity = window.google?.accounts.id;
+    if (!googleIdentity) {
+      reject(new Error('Login Google indisponivel. Recarregue a pagina.'));
+      return;
+    }
+
+    let settled = false;
+    googleIdentity.initialize({
+      client_id: GOOGLE_WEB_CLIENT_ID,
+      cancel_on_tap_outside: false,
+      use_fedcm_for_prompt: true,
+      callback: response => {
+        if (settled) return;
+        settled = true;
+        if (response.credential) resolve(response.credential);
+        else reject(new Error('O Google nao retornou um token de identidade.'));
+      },
+    });
+    googleIdentity.prompt(notification => {
+      if (settled || (!notification.isNotDisplayed() && !notification.isSkippedMoment() && !notification.isDismissedMoment())) return;
+      settled = true;
+      const reason = notification.getNotDisplayedReason?.() || notification.getSkippedReason?.() || notification.getDismissedReason?.();
+      reject(new Error(reason ? `Login Google nao exibido: ${reason}.` : 'Login Google cancelado ou indisponivel.'));
+    });
+  });
+};
 
 const saveSession = async (session: AuthSession) => {
   const value = JSON.stringify(session);
@@ -112,7 +206,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       }
     };
 
-    void restoreSession();
+    restoreSession();
   }, []);
 
   const signInWithGoogle = async () => {
@@ -125,6 +219,15 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     setIsSigningIn(true);
 
     try {
+      if (Platform.OS === 'web') {
+        const idToken = await getGoogleWebIdToken();
+        const nextSession = await googleLogin(idToken);
+        await saveSession(nextSession);
+        setApiAccessToken(nextSession.access_token);
+        setSession(nextSession);
+        return;
+      }
+
       if (Platform.OS === 'android') {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       }
@@ -154,7 +257,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const signOut = async () => {
     try {
-      await GoogleSignin.signOut();
+      if (Platform.OS !== 'web') await GoogleSignin.signOut();
     } finally {
       await clearStoredSession();
       setApiAccessToken(null);

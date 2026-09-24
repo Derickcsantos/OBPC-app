@@ -1,3 +1,5 @@
+import { BookOpenText, ChevronRight, ArrowLeft } from 'lucide-react-native';
+import { Icon } from '../components/Icon';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,13 +11,24 @@ import {
   View,
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
-import { getPlanoEstudo, getPlanoEstudoDiaTextos, getPlanosEstudo } from '../services/api';
+import {
+  getPlanoEstudo,
+  getPlanoEstudoDiaTextos,
+  getPlanosEstudo,
+} from '../services/api';
 import { colors } from '../theme/colors';
-import { PlanoEstudo, PlanoEstudoDia, PlanoEstudoDiaTextos, PlanoEstudoLeitura } from '../types';
+import { spacing, typography, radius } from '../theme/tokens';
+import {
+  PlanoEstudo,
+  PlanoEstudoDia,
+  PlanoEstudoDiaTextos,
+  PlanoEstudoLeitura,
+} from '../types';
 
 const DEFAULT_VERSION = 'nvi';
 
-const getPlanIdentifier = (plano: PlanoEstudo) => plano.slug || plano.plano_estudo_id;
+const getPlanIdentifier = (plano: PlanoEstudo) =>
+  plano.slug || plano.plano_estudo_id;
 
 const getReadingText = (leitura: PlanoEstudoLeitura) => {
   const chapterText = leitura.texto?.chapter_text?.trim();
@@ -55,11 +68,17 @@ export const MensagensScreen = () => {
   const [error, setError] = useState('');
 
   const sortedPlanos = useMemo(
-    () => [...planos].sort((a, b) => (a.titulo || '').localeCompare(b.titulo || '', 'pt-BR')),
+    () =>
+      [...planos].sort((a, b) =>
+        (a.titulo || '').localeCompare(b.titulo || '', 'pt-BR'),
+      ),
     [planos],
   );
 
-  const sortedDias = useMemo(() => [...dias].sort((a, b) => a.dia - b.dia), [dias]);
+  const sortedDias = useMemo(
+    () => [...dias].sort((a, b) => a.dia - b.dia),
+    [dias],
+  );
   const leituras = useMemo(() => diaTextos?.dia.leituras ?? [], [diaTextos]);
 
   const loadPlanos = useCallback(async () => {
@@ -111,7 +130,10 @@ export const MensagensScreen = () => {
 
     try {
       const detalhe = await getPlanoEstudo(identifier);
-      setSelectedPlano(current => ({ ...plano, ...(detalhe.plano ?? current) }));
+      setSelectedPlano(current => ({
+        ...plano,
+        ...(detalhe.plano ?? current),
+      }));
       setDias(detalhe.dias);
     } catch (requestError) {
       setError('Nao foi possivel carregar os dias deste plano.');
@@ -125,7 +147,11 @@ export const MensagensScreen = () => {
     }
   };
 
-  const openDia = async (plano: PlanoEstudo, dia: PlanoEstudoDia, refreshingCurrent = false) => {
+  const openDia = async (
+    plano: PlanoEstudo,
+    dia: PlanoEstudoDia,
+    refreshingCurrent = false,
+  ) => {
     const identifier = getPlanIdentifier(plano);
 
     if (!identifier) {
@@ -137,7 +163,9 @@ export const MensagensScreen = () => {
     setError('');
 
     try {
-      setDiaTextos(await getPlanoEstudoDiaTextos(identifier, dia.dia, DEFAULT_VERSION));
+      setDiaTextos(
+        await getPlanoEstudoDiaTextos(identifier, dia.dia, DEFAULT_VERSION),
+      );
     } catch (requestError) {
       setError('Nao foi possivel carregar os textos deste dia.');
       console.error('Erro ao carregar textos do dia:', requestError);
@@ -188,17 +216,30 @@ export const MensagensScreen = () => {
 
         <FlatList
           data={leituras}
-          keyExtractor={(item, index) => item.plano_estudo_leitura_id || `${item.referencia}-${index}`}
+          keyExtractor={(item, index) =>
+            item.plano_estudo_leitura_id || `${item.referencia}-${index}`
+          }
           contentContainerStyle={styles.readingContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+            />
+          }
           ListEmptyComponent={
             detailLoading ? (
               <InlineLoading text="Buscando textos" />
             ) : (
-              <EmptyState title="Nenhum texto encontrado" onRetry={() => openDia(selectedPlano, selectedDia)} />
+              <EmptyState
+                title="Nenhum texto encontrado"
+                onRetry={() => openDia(selectedPlano, selectedDia)}
+              />
             )
           }
-          renderItem={({ item, index }) => <ReadingItem leitura={item} fallbackOrder={index + 1} />}
+          renderItem={({ item, index }) => (
+            <ReadingItem leitura={item} fallbackOrder={index + 1} />
+          )}
           initialNumToRender={2}
           maxToRenderPerBatch={4}
           windowSize={5}
@@ -212,28 +253,46 @@ export const MensagensScreen = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={goBack}>
+            <Icon as={ArrowLeft} size={18} />
             <Text style={styles.backButtonText}>Voltar</Text>
           </TouchableOpacity>
           <Text style={styles.kicker}>{getDurationLabel(selectedPlano)}</Text>
-          <Text style={styles.title}>{selectedPlano.titulo || 'Plano de estudo'}</Text>
-          {selectedPlano.descricao ? <Text style={styles.subtitle}>{selectedPlano.descricao}</Text> : null}
+          <Text style={styles.title}>
+            {selectedPlano.titulo || 'Plano de estudo'}
+          </Text>
+          {selectedPlano.descricao ? (
+            <Text style={styles.subtitle}>{selectedPlano.descricao}</Text>
+          ) : null}
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <FlatList
           data={sortedDias}
-          keyExtractor={(item, index) => item.plano_estudo_dia_id || `${item.dia}-${index}`}
+          keyExtractor={(item, index) =>
+            item.plano_estudo_dia_id || `${item.dia}-${index}`
+          }
           contentContainerStyle={styles.daysContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+            />
+          }
           ListEmptyComponent={
             detailLoading ? (
               <InlineLoading text="Carregando dias" />
             ) : (
-              <EmptyState title="Nenhum dia encontrado" onRetry={() => openPlano(selectedPlano)} />
+              <EmptyState
+                title="Nenhum dia encontrado"
+                onRetry={() => openPlano(selectedPlano)}
+              />
             )
           }
-          renderItem={({ item }) => <DayItem dia={item} onPress={() => openDia(selectedPlano, item)} />}
+          renderItem={({ item }) => (
+            <DayItem dia={item} onPress={() => openDia(selectedPlano, item)} />
+          )}
           initialNumToRender={24}
           maxToRenderPerBatch={24}
           windowSize={7}
@@ -247,18 +306,33 @@ export const MensagensScreen = () => {
       <View style={styles.header}>
         <Text style={styles.kicker}>Mensagens</Text>
         <Text style={styles.title}>Planos de estudo</Text>
-        <Text style={styles.subtitle}>Escolha um plano, acompanhe os dias e leia os textos separados para cada etapa.</Text>
+        <Text style={styles.subtitle}>
+          Escolha um plano, acompanhe os dias e leia os textos separados para
+          cada etapa.
+        </Text>
       </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <FlatList
         data={sortedPlanos}
-        keyExtractor={(item, index) => getPlanIdentifier(item) || `${item.titulo}-${index}`}
+        keyExtractor={(item, index) =>
+          getPlanIdentifier(item) || `${item.titulo}-${index}`
+        }
         contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        ListEmptyComponent={<EmptyState title="Nenhum plano encontrado" onRetry={loadPlanos} />}
-        renderItem={({ item }) => <PlanoItem plano={item} onPress={() => openPlano(item)} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        ListEmptyComponent={
+          <EmptyState title="Nenhum plano encontrado" onRetry={loadPlanos} />
+        }
+        renderItem={({ item }) => (
+          <PlanoItem plano={item} onPress={() => openPlano(item)} />
+        )}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
         windowSize={5}
@@ -267,10 +341,20 @@ export const MensagensScreen = () => {
   );
 };
 
-const PlanoItem = ({ plano, onPress }: { plano: PlanoEstudo; onPress: () => void }) => (
-  <TouchableOpacity style={styles.planCard} activeOpacity={0.84} onPress={onPress}>
+const PlanoItem = ({
+  plano,
+  onPress,
+}: {
+  plano: PlanoEstudo;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    style={styles.planCard}
+    activeOpacity={0.84}
+    onPress={onPress}
+  >
     <View style={styles.planIcon}>
-      <Text style={styles.planIconText}>{String(plano.titulo || 'P').slice(0, 1).toUpperCase()}</Text>
+      <Icon as={BookOpenText} size={22} />
     </View>
     <View style={styles.planTextBlock}>
       <Text style={styles.planTitle}>{plano.titulo || 'Plano de estudo'}</Text>
@@ -281,20 +365,32 @@ const PlanoItem = ({ plano, onPress }: { plano: PlanoEstudo; onPress: () => void
       ) : null}
       <Text style={styles.planMeta}>{getDurationLabel(plano)}</Text>
     </View>
-    <Text style={styles.arrow}>›</Text>
+    <Icon as={ChevronRight} />
   </TouchableOpacity>
 );
 
-const DayItem = ({ dia, onPress }: { dia: PlanoEstudoDia; onPress: () => void }) => (
-  <TouchableOpacity style={styles.dayCard} activeOpacity={0.78} onPress={onPress}>
+const DayItem = ({
+  dia,
+  onPress,
+}: {
+  dia: PlanoEstudoDia;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    style={styles.dayCard}
+    activeOpacity={0.78}
+    onPress={onPress}
+  >
     <View style={styles.dayNumberBox}>
       <Text style={styles.dayNumber}>{dia.dia}</Text>
     </View>
     <View style={styles.dayTextBlock}>
       <Text style={styles.dayTitle}>{dia.titulo || `Dia ${dia.dia}`}</Text>
-      {dia.quantidade_leituras ? <Text style={styles.dayMeta}>{dia.quantidade_leituras} leituras</Text> : null}
+      {dia.quantidade_leituras ? (
+        <Text style={styles.dayMeta}>{dia.quantidade_leituras} leituras</Text>
+      ) : null}
     </View>
-    <Text style={styles.arrow}>›</Text>
+    <Icon as={ChevronRight} />
   </TouchableOpacity>
 );
 
@@ -311,6 +407,7 @@ const ReadingHeader = ({
 }) => (
   <View style={styles.header}>
     <TouchableOpacity style={styles.backButton} onPress={onBack}>
+      <Icon as={ArrowLeft} size={18} />
       <Text style={styles.backButtonText}>Voltar</Text>
     </TouchableOpacity>
     <Text style={styles.kicker}>{plano.titulo || 'Plano de estudo'}</Text>
@@ -324,11 +421,21 @@ const ReadingHeader = ({
   </View>
 );
 
-const ReadingItem = ({ leitura, fallbackOrder }: { leitura: PlanoEstudoLeitura; fallbackOrder: number }) => (
+const ReadingItem = ({
+  leitura,
+  fallbackOrder,
+}: {
+  leitura: PlanoEstudoLeitura;
+  fallbackOrder: number;
+}) => (
   <View style={styles.readingBlock}>
     <View style={styles.readingTopRow}>
-      <Text style={styles.readingOrder}>{String(leitura.ordem ?? fallbackOrder).padStart(2, '0')}</Text>
-      <Text style={styles.readingReference}>{leitura.referencia || 'Leitura'}</Text>
+      <Text style={styles.readingOrder}>
+        {String(leitura.ordem ?? fallbackOrder).padStart(2, '0')}
+      </Text>
+      <Text style={styles.readingReference}>
+        {leitura.referencia || 'Leitura'}
+      </Text>
     </View>
     <Text style={styles.readingText}>{getReadingText(leitura)}</Text>
   </View>
@@ -341,10 +448,18 @@ const InlineLoading = ({ text }: { text: string }) => (
   </View>
 );
 
-const EmptyState = ({ title, onRetry }: { title: string; onRetry: () => void }) => (
+const EmptyState = ({
+  title,
+  onRetry,
+}: {
+  title: string;
+  onRetry: () => void;
+}) => (
   <ScrollView contentContainerStyle={styles.emptyState}>
     <Text style={styles.emptyTitle}>{title}</Text>
-    <Text style={styles.emptyText}>Puxe para atualizar ou tente novamente.</Text>
+    <Text style={styles.emptyText}>
+      Puxe para atualizar ou tente novamente.
+    </Text>
     <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
       <Text style={styles.retryText}>Tentar novamente</Text>
     </TouchableOpacity>
@@ -365,78 +480,66 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     color: colors.textSecondary,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   header: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
+    paddingHorizontal: spacing.page,
+    paddingTop: spacing.section,
     paddingBottom: 12,
     backgroundColor: colors.white,
   },
   kicker: {
     color: colors.accent,
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontSize: typography.caption,
+    fontWeight: '600',
   },
   title: {
     marginTop: 4,
     color: colors.textPrimary,
-    fontSize: 30,
-    fontWeight: '900',
+    fontSize: typography.title,
+    fontWeight: '600',
   },
   subtitle: {
     marginTop: 8,
     color: colors.textSecondary,
-    fontSize: 15,
+    fontSize: typography.body,
     lineHeight: 22,
   },
   errorText: {
-    marginHorizontal: 18,
+    marginHorizontal: spacing.page,
     marginBottom: 10,
     color: colors.danger,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   listContent: {
-    paddingHorizontal: 18,
-    paddingBottom: 96,
+    paddingHorizontal: spacing.page,
+    paddingBottom: spacing.bottom,
   },
   daysContent: {
     paddingHorizontal: 14,
-    paddingBottom: 96,
+    paddingBottom: spacing.bottom,
   },
   readingContent: {
-    paddingHorizontal: 18,
-    paddingBottom: 110,
+    paddingHorizontal: spacing.page,
+    paddingBottom: spacing.bottom,
   },
   planCard: {
-    minHeight: 104,
+    minHeight: 76,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-    padding: 14,
-    borderRadius: 18,
+    padding: spacing.md,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: colors.cardShadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 3,
   },
   planIcon: {
-    width: 54,
-    height: 54,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 18,
+    borderRadius: radius.md,
     backgroundColor: colors.primarySoft,
-  },
-  planIconText: {
-    color: colors.primary,
-    fontSize: 22,
-    fontWeight: '900',
   },
   planTextBlock: {
     flex: 1,
@@ -444,38 +547,31 @@ const styles = StyleSheet.create({
   },
   planTitle: {
     color: colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: typography.subtitle,
+    fontWeight: '600',
   },
   planDescription: {
     marginTop: 5,
     color: colors.textSecondary,
-    fontSize: 13,
+    fontSize: typography.body,
     lineHeight: 19,
   },
   planMeta: {
     marginTop: 8,
     color: colors.accent,
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  arrow: {
-    color: colors.accent,
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: typography.caption,
+    fontWeight: '600',
   },
   dayCard: {
     width: '100%',
-    minHeight: 72,
+    minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 9,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 16,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
   },
   dayNumberBox: {
@@ -483,13 +579,13 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 16,
+    borderRadius: radius.md,
     backgroundColor: colors.primarySoft,
   },
   dayNumber: {
     color: colors.primary,
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: typography.subtitle,
+    fontWeight: '600',
   },
   dayTextBlock: {
     flex: 1,
@@ -497,26 +593,30 @@ const styles = StyleSheet.create({
   },
   dayTitle: {
     color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: typography.subtitle,
+    fontWeight: '600',
   },
   dayMeta: {
     marginTop: 4,
     color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: typography.caption,
+    fontWeight: '600',
   },
   backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
     alignSelf: 'flex-start',
     marginBottom: 14,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 14,
+    borderRadius: radius.md,
     backgroundColor: colors.primarySoft,
   },
   backButtonText: {
     color: colors.primary,
-    fontWeight: '900',
+    fontWeight: '600',
   },
   detailLoading: {
     flexDirection: 'row',
@@ -526,7 +626,7 @@ const styles = StyleSheet.create({
   detailLoadingText: {
     marginLeft: 8,
     color: colors.textSecondary,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   readingBlock: {
     paddingVertical: 16,
@@ -541,38 +641,38 @@ const styles = StyleSheet.create({
   readingOrder: {
     width: 34,
     color: colors.accent,
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: typography.body,
+    fontWeight: '600',
   },
   readingReference: {
     flex: 1,
     color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: typography.subtitle,
+    fontWeight: '600',
   },
   readingText: {
     color: colors.textPrimary,
-    fontSize: 16,
-    lineHeight: 25,
+    fontSize: typography.subtitle,
+    lineHeight: 24,
   },
   inlineLoading: {
     alignItems: 'center',
-    paddingVertical: 34,
+    paddingVertical: spacing.section,
   },
   inlineLoadingText: {
     marginTop: 10,
     color: colors.textSecondary,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 38,
-    paddingHorizontal: 18,
+    paddingVertical: spacing.section,
+    paddingHorizontal: spacing.page,
   },
   emptyTitle: {
     color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: typography.heading,
+    fontWeight: '600',
     textAlign: 'center',
   },
   emptyText: {
@@ -581,14 +681,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
+    minHeight: 44,
     marginTop: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: radius.md,
     backgroundColor: colors.primary,
   },
   retryText: {
     color: colors.white,
-    fontWeight: '900',
+    fontWeight: '600',
   },
 });

@@ -1,4 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Search, ChevronRight } from 'lucide-react-native';
+import { Icon } from '../components/Icon';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -8,9 +16,20 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { AppText as Text, AppTextInput as TextInput } from '../components/AppText';
-import { getBibleVersions, getBookVerses, getBooks, getChapters, getVerses, searchBible } from '../services/api';
+import {
+  AppText as Text,
+  AppTextInput as TextInput,
+} from '../components/AppText';
+import {
+  getBibleVersions,
+  getBookVerses,
+  getBooks,
+  getChapters,
+  getVerses,
+  searchBible,
+} from '../services/api';
 import { colors } from '../theme/colors';
+import { spacing, typography, radius } from '../theme/tokens';
 import { BibleVersion, Book, Chapter, Verse } from '../types';
 
 type Step = 'books' | 'chapters' | 'verses';
@@ -32,7 +51,10 @@ const uniqueVerses = (items: Verse[]) => {
   const seen = new Set<string>();
 
   return items.filter((item, index) => {
-    const cleanText = (item.text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const cleanText = (item.text || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
     const key = `${item.book ?? ''}-${item.chapter ?? ''}-${item.verse ?? index}-${cleanText}`;
 
     if (seen.has(key)) {
@@ -44,16 +66,24 @@ const uniqueVerses = (items: Verse[]) => {
   });
 };
 
-const isHorizontalChapterSwipe = (dx: number, dy: number) => Math.abs(dx) > 18 && Math.abs(dx) > Math.abs(dy) * 1.1;
+const isHorizontalChapterSwipe = (dx: number, dy: number) =>
+  Math.abs(dx) > 18 && Math.abs(dx) > Math.abs(dy) * 1.1;
 
-const getVersionCode = (version: BibleVersion) => String(version.code ?? version.id ?? version.version ?? 'nvi').toLowerCase();
+const getVersionCode = (version: BibleVersion) =>
+  String(version.code ?? version.id ?? version.version ?? 'nvi').toLowerCase();
 
 const getVersionLabel = (version?: BibleVersion | null) => {
   if (!version) {
     return 'NVI';
   }
 
-  return String(version.name ?? version.abbreviation ?? version.abbrev ?? version.code ?? version.id).toUpperCase();
+  return String(
+    version.name ??
+      version.abbreviation ??
+      version.abbrev ??
+      version.code ??
+      version.id,
+  ).toUpperCase();
 };
 
 const normalizeBookName = (value?: string) =>
@@ -63,9 +93,17 @@ const normalizeBookName = (value?: string) =>
     .trim()
     .toLowerCase();
 
-const chaptersFromVerses = (book: Book, items: Verse[], version: string): Chapter[] => {
+const chaptersFromVerses = (
+  book: Book,
+  items: Verse[],
+  version: string,
+): Chapter[] => {
   const chapterNumbers = Array.from(
-    new Set(items.map(item => item.chapter).filter((chapter): chapter is number => typeof chapter === 'number')),
+    new Set(
+      items
+        .map(item => item.chapter)
+        .filter((chapter): chapter is number => typeof chapter === 'number'),
+    ),
   ).sort((a, b) => a - b);
 
   return chapterNumbers.map(chapter => ({
@@ -77,7 +115,11 @@ const chaptersFromVerses = (book: Book, items: Verse[], version: string): Chapte
   }));
 };
 
-export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (active: boolean) => void }) => {
+export const BibliaScreen = ({
+  onReadingModeChange,
+}: {
+  onReadingModeChange?: (active: boolean) => void;
+}) => {
   const [testament, setTestament] = useState<TestamentFilter>('all');
   const [books, setBooks] = useState<Book[]>([]);
   const [versions, setVersions] = useState<BibleVersion[]>([]);
@@ -98,7 +140,10 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
   const verseScrollRef = useRef<ScrollView>(null);
 
   const displayedVerses = useMemo(() => uniqueVerses(verses), [verses]);
-  const displayedSearchResults = useMemo(() => uniqueVerses(searchResults), [searchResults]);
+  const displayedSearchResults = useMemo(
+    () => uniqueVerses(searchResults),
+    [searchResults],
+  );
   const selectedVersionDetails = useMemo(
     () => versions.find(version => getVersionCode(version) === selectedVersion),
     [selectedVersion, versions],
@@ -109,7 +154,10 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
       const loadedVersions = await getBibleVersions();
       setVersions(loadedVersions);
 
-      if (loadedVersions.length && !loadedVersions.some(version => getVersionCode(version) === 'nvi')) {
+      if (
+        loadedVersions.length &&
+        !loadedVersions.some(version => getVersionCode(version) === 'nvi')
+      ) {
         setSelectedVersion(getVersionCode(loadedVersions[0]));
       }
     } catch (requestError) {
@@ -181,9 +229,17 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
             return;
           }
 
-          const loadedChapters = chaptersFromVerses(book, loadedVerses, selectedVersion);
+          const loadedChapters = chaptersFromVerses(
+            book,
+            loadedVerses,
+            selectedVersion,
+          );
           setBookVerses(loadedVerses);
-          setChapters(currentChapters => (loadedChapters.length > currentChapters.length ? loadedChapters : currentChapters));
+          setChapters(currentChapters =>
+            loadedChapters.length > currentChapters.length
+              ? loadedChapters
+              : currentChapters,
+          );
         })
         .catch(requestError => {
           console.error('Erro ao pre-carregar livro:', requestError);
@@ -196,12 +252,14 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
     }
   };
 
-  const handleSelectChapter = async (chapterNumber: number) => {
+  const handleSelectChapter = useCallback(async (chapterNumber: number) => {
     if (!selectedBook) {
       return;
     }
 
-    const cachedChapterVerses = bookVerses.filter(verse => verse.chapter === chapterNumber);
+    const cachedChapterVerses = bookVerses.filter(
+      verse => verse.chapter === chapterNumber,
+    );
 
     setSelectedChapter(chapterNumber);
     setError('');
@@ -216,9 +274,16 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
     setLoading(true);
 
     try {
-      const loadedVerses = await getVerses(selectedBook.id, chapterNumber, undefined, selectedVersion);
+      const loadedVerses = await getVerses(
+        selectedBook.id,
+        chapterNumber,
+        undefined,
+        selectedVersion,
+      );
       setVerses(loadedVerses);
-      setBookVerses(currentVerses => uniqueVerses([...currentVerses, ...loadedVerses]));
+      setBookVerses(currentVerses =>
+        uniqueVerses([...currentVerses, ...loadedVerses]),
+      );
       setStep('verses');
     } catch (requestError) {
       setError('Nao foi possivel carregar os versiculos.');
@@ -226,13 +291,19 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
     } finally {
       setLoading(false);
     }
-  };
+  }, [bookVerses, selectedBook, selectedVersion]);
 
-  const currentChapterIndex = chapters.findIndex(chapter => chapter.chapter === selectedChapter);
-  const previousChapter = currentChapterIndex > 0 ? chapters[currentChapterIndex - 1] : null;
-  const nextChapter = currentChapterIndex >= 0 && currentChapterIndex < chapters.length - 1 ? chapters[currentChapterIndex + 1] : null;
+  const currentChapterIndex = chapters.findIndex(
+    chapter => chapter.chapter === selectedChapter,
+  );
+  const previousChapter =
+    currentChapterIndex > 0 ? chapters[currentChapterIndex - 1] : null;
+  const nextChapter =
+    currentChapterIndex >= 0 && currentChapterIndex < chapters.length - 1
+      ? chapters[currentChapterIndex + 1]
+      : null;
 
-  const navigateChapter = async (direction: -1 | 1) => {
+  const navigateChapter = useCallback(async (direction: -1 | 1) => {
     const target = direction === -1 ? previousChapter : nextChapter;
 
     if (!target || loading) {
@@ -240,13 +311,15 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
     }
 
     await handleSelectChapter(target.chapter);
-  };
+  }, [handleSelectChapter, loading, nextChapter, previousChapter]);
 
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) => isHorizontalChapterSwipe(gestureState.dx, gestureState.dy),
-        onMoveShouldSetPanResponderCapture: (_, gestureState) => isHorizontalChapterSwipe(gestureState.dx, gestureState.dy),
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          isHorizontalChapterSwipe(gestureState.dx, gestureState.dy),
+        onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+          isHorizontalChapterSwipe(gestureState.dx, gestureState.dy),
         onPanResponderTerminationRequest: () => false,
         onPanResponderRelease: (_, gestureState) => {
           if (gestureState.dx < -28) {
@@ -258,7 +331,7 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
           }
         },
       }),
-    [previousChapter, nextChapter, loading],
+    [navigateChapter],
   );
 
   const handleSearch = async () => {
@@ -272,7 +345,14 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
     setError('');
 
     try {
-      setSearchResults(await searchBible(keyword, selectedBook?.id, selectedChapter ?? undefined, selectedVersion));
+      setSearchResults(
+        await searchBible(
+          keyword,
+          selectedBook?.id,
+          selectedChapter ?? undefined,
+          selectedVersion,
+        ),
+      );
     } catch (requestError) {
       setSearchResults([]);
       setError('Nao foi possivel buscar na Biblia.');
@@ -300,14 +380,20 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
 
       if (!targetBook && verse.book_name) {
         const resultBookName = normalizeBookName(verse.book_name);
-        targetBook = availableBooks.find(book => normalizeBookName(book.name) === resultBookName);
+        targetBook = availableBooks.find(
+          book => normalizeBookName(book.name) === resultBookName,
+        );
       }
 
       if (!targetBook) {
         availableBooks = await getBooks();
         targetBook =
           availableBooks.find(book => book.id === resultBookId) ??
-          availableBooks.find(book => normalizeBookName(book.name) === normalizeBookName(verse.book_name));
+          availableBooks.find(
+            book =>
+              normalizeBookName(book.name) ===
+              normalizeBookName(verse.book_name),
+          );
       }
 
       if (!targetBook) {
@@ -315,9 +401,13 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
       }
 
       const sameBook = selectedBook?.id === targetBook.id;
-      const cachedVerses = sameBook ? bookVerses.filter(item => item.chapter === chapterNumber) : [];
+      const cachedVerses = sameBook
+        ? bookVerses.filter(item => item.chapter === chapterNumber)
+        : [];
       const [loadedChapters, loadedVerses] = await Promise.all([
-        sameBook && chapters.length ? Promise.resolve(chapters) : getChapters(targetBook.id, selectedVersion),
+        sameBook && chapters.length
+          ? Promise.resolve(chapters)
+          : getChapters(targetBook.id, selectedVersion),
         cachedVerses.length
           ? Promise.resolve(cachedVerses)
           : getVerses(targetBook.id, chapterNumber, undefined, selectedVersion),
@@ -329,7 +419,9 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
       setChapters(loadedChapters);
       setVerses(loadedVerses);
       setBookVerses(current =>
-        sameBook ? uniqueVerses([...current, ...loadedVerses]) : uniqueVerses(loadedVerses),
+        sameBook
+          ? uniqueVerses([...current, ...loadedVerses])
+          : uniqueVerses(loadedVerses),
       );
       setSearchResults([]);
       setSearchOpen(false);
@@ -365,7 +457,12 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
       setChapters(loadedChapters);
 
       if (step === 'verses' && selectedChapter) {
-        const loadedVerses = await getVerses(selectedBook.id, selectedChapter, undefined, version);
+        const loadedVerses = await getVerses(
+          selectedBook.id,
+          selectedChapter,
+          undefined,
+          version,
+        );
         setVerses(loadedVerses);
       }
 
@@ -375,9 +472,17 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
             return;
           }
 
-          const nextChapters = chaptersFromVerses(selectedBook, loadedVerses, version);
+          const nextChapters = chaptersFromVerses(
+            selectedBook,
+            loadedVerses,
+            version,
+          );
           setBookVerses(loadedVerses);
-          setChapters(currentChapters => (nextChapters.length > currentChapters.length ? nextChapters : currentChapters));
+          setChapters(currentChapters =>
+            nextChapters.length > currentChapters.length
+              ? nextChapters
+              : currentChapters,
+          );
         })
         .catch(requestError => {
           console.error('Erro ao pre-carregar livro:', requestError);
@@ -416,7 +521,11 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
     }
 
     const verseBookId = verse.book_id ?? verse.book;
-    return books.find(book => book.id === verseBookId)?.name ?? selectedBook?.name ?? 'Livro';
+    return (
+      books.find(book => book.id === verseBookId)?.name ??
+      selectedBook?.name ??
+      'Livro'
+    );
   };
 
   if (loading && !books.length) {
@@ -430,64 +539,95 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
 
   return (
     <View style={styles.container}>
-      {step !== 'verses' ? <View style={styles.topPanel}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.kicker}>Leitura e busca</Text>
-            <Text style={styles.title}>Biblia {getVersionLabel(selectedVersionDetails)}</Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.searchToggle, searchOpen && styles.searchToggleActive]}
-            onPress={() => setSearchOpen(current => !current)}
-            accessibilityRole="button"
-            accessibilityLabel="Buscar na Biblia"
-          >
-            <SearchGlyph active={searchOpen} />
-          </TouchableOpacity>
-        </View>
-
-        {versions.length ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.versionStrip}>
-            {versions.map(version => {
-              const code = getVersionCode(version);
-
-              return (
-                <VersionChip
-                  key={code}
-                  label={getVersionLabel(version)}
-                  active={code === selectedVersion}
-                  onPress={() => handleSelectVersion(code)}
-                />
-              );
-            })}
-          </ScrollView>
-        ) : null}
-
-        {searchOpen ? (
-          <View style={styles.searchBox}>
-            <TextInput
-              value={searchTerm}
-              onChangeText={setSearchTerm}
-              onSubmitEditing={handleSearch}
-              placeholder={`Buscar em ${getVersionLabel(selectedVersionDetails)}`}
-              placeholderTextColor={colors.textSecondary}
-              style={styles.searchInput}
-              returnKeyType="search"
-              autoFocus
-            />
-            <TouchableOpacity style={styles.searchButton} onPress={handleSearch} disabled={searching}>
-              {searching ? <ActivityIndicator size="small" color={colors.white} /> : <Text style={styles.searchButtonText}>Buscar</Text>}
+      {step !== 'verses' ? (
+        <View style={styles.topPanel}>
+          <View style={styles.titleRow}>
+            <View style={styles.titleBlock}>
+              <Text style={styles.kicker}>Leitura e busca</Text>
+              <Text style={styles.title}>
+                Biblia {getVersionLabel(selectedVersionDetails)}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.searchToggle,
+                searchOpen && styles.searchToggleActive,
+              ]}
+              onPress={() => setSearchOpen(current => !current)}
+              accessibilityRole="button"
+              accessibilityLabel="Buscar na Biblia"
+            >
+              <SearchGlyph active={searchOpen} />
             </TouchableOpacity>
           </View>
-        ) : null}
-      </View> : null}
+
+          {versions.length ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.versionStrip}
+            >
+              {versions.map(version => {
+                const code = getVersionCode(version);
+
+                return (
+                  <VersionChip
+                    key={code}
+                    label={getVersionLabel(version)}
+                    active={code === selectedVersion}
+                    onPress={() => handleSelectVersion(code)}
+                  />
+                );
+              })}
+            </ScrollView>
+          ) : null}
+
+          {searchOpen ? (
+            <View style={styles.searchBox}>
+              <TextInput
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                onSubmitEditing={handleSearch}
+                placeholder={`Buscar em ${getVersionLabel(selectedVersionDetails)}`}
+                placeholderTextColor={colors.textSecondary}
+                style={styles.searchInput}
+                returnKeyType="search"
+                autoFocus
+              />
+              <TouchableOpacity
+                style={styles.searchButton}
+                onPress={handleSearch}
+                disabled={searching}
+              >
+                {searching ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Text style={styles.searchButtonText}>Buscar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       {step === 'books' ? (
         <>
           <View style={styles.filters}>
-            <FilterChip label="Todos" active={testament === 'all'} onPress={() => loadBooks('all')} />
-            <FilterChip label="Antigo" active={testament === 1} onPress={() => loadBooks(1)} />
-            <FilterChip label="Novo" active={testament === 2} onPress={() => loadBooks(2)} />
+            <FilterChip
+              label="Todos"
+              active={testament === 'all'}
+              onPress={() => loadBooks('all')}
+            />
+            <FilterChip
+              label="Antigo"
+              active={testament === 1}
+              onPress={() => loadBooks(1)}
+            />
+            <FilterChip
+              label="Novo"
+              active={testament === 2}
+              onPress={() => loadBooks(2)}
+            />
           </View>
         </>
       ) : null}
@@ -496,7 +636,10 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
         <View style={styles.searchResults}>
           <View style={styles.resultHeader}>
             <Text style={styles.resultTitle}>Resultados</Text>
-            <TouchableOpacity onPress={() => setSearchResults([])}>
+            <TouchableOpacity
+              style={styles.minTouchTarget}
+              onPress={() => setSearchResults([])}
+            >
               <Text style={styles.clearText}>Limpar</Text>
             </TouchableOpacity>
           </View>
@@ -524,13 +667,35 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
         </View>
       ) : (
         <>
-          {step !== 'verses' ? <View style={styles.breadcrumb}>
-            <TouchableOpacity onPress={() => setStep('books')}>
-              <Text style={[styles.breadcrumbText, step === 'books' && styles.activeBreadcrumb]}>Livros</Text>
-            </TouchableOpacity>
-            {selectedBook ? <Text style={styles.breadcrumbText}> / {selectedBook.name}</Text> : null}
-            {selectedChapter ? <Text style={styles.breadcrumbText}> / Cap. {selectedChapter}</Text> : null}
-          </View> : null}
+          {step !== 'verses' ? (
+            <View style={styles.breadcrumb}>
+              <TouchableOpacity
+                style={styles.minTouchTarget}
+                onPress={() => setStep('books')}
+              >
+                <Text
+                  style={[
+                    styles.breadcrumbText,
+                    step === 'books' && styles.activeBreadcrumb,
+                  ]}
+                >
+                  Livros
+                </Text>
+              </TouchableOpacity>
+              {selectedBook ? (
+                <Text style={styles.breadcrumbText}>
+                  {' '}
+                  / {selectedBook.name}
+                </Text>
+              ) : null}
+              {selectedChapter ? (
+                <Text style={styles.breadcrumbText}>
+                  {' '}
+                  / Cap. {selectedChapter}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -545,9 +710,17 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
               data={books}
               keyExtractor={(item, index) => `${item.id || index}`}
               contentContainerStyle={styles.listContent}
-              ListEmptyComponent={<EmptyState text="Nenhum livro encontrado." onRetry={() => loadBooks(testament)} />}
+              ListEmptyComponent={
+                <EmptyState
+                  text="Nenhum livro encontrado."
+                  onRetry={() => loadBooks(testament)}
+                />
+              }
               renderItem={({ item }) => (
-                <TouchableOpacity style={styles.bookItem} onPress={() => handleSelectBook(item)}>
+                <TouchableOpacity
+                  style={styles.bookItem}
+                  onPress={() => handleSelectBook(item)}
+                >
                   <View style={styles.bookTextBlock}>
                     <Text style={styles.bookName}>{item.name || 'Livro'}</Text>
                     <Text style={styles.bookMeta}>
@@ -555,7 +728,7 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
                       {testamentLabel(item.testament)}
                     </Text>
                   </View>
-                  <Text style={styles.arrow}>›</Text>
+                  <Icon as={ChevronRight} />
                 </TouchableOpacity>
               )}
             />
@@ -565,11 +738,21 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
             <FlatList
               data={chapters}
               numColumns={5}
-              keyExtractor={(item, index) => `${item.id || item.chapter || index}`}
+              keyExtractor={(item, index) =>
+                `${item.id || item.chapter || index}`
+              }
               contentContainerStyle={styles.gridContainer}
-              ListEmptyComponent={<EmptyState text="Nenhum capitulo disponivel." onRetry={() => selectedBook && handleSelectBook(selectedBook)} />}
+              ListEmptyComponent={
+                <EmptyState
+                  text="Nenhum capitulo disponivel."
+                  onRetry={() => selectedBook && handleSelectBook(selectedBook)}
+                />
+              }
               renderItem={({ item }) => (
-                <TouchableOpacity style={styles.chapterSquare} onPress={() => handleSelectChapter(item.chapter)}>
+                <TouchableOpacity
+                  style={styles.chapterSquare}
+                  onPress={() => handleSelectChapter(item.chapter)}
+                >
                   <Text style={styles.chapterNumber}>{item.chapter}</Text>
                 </TouchableOpacity>
               )}
@@ -579,10 +762,16 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
           {!loading && step === 'verses' ? (
             <View style={styles.versePane} {...panResponder.panHandlers}>
               <View style={styles.chapterNav}>
-                <Text style={styles.chapterNavTitle}>{selectedBook?.name} {selectedChapter}</Text>
+                <Text style={styles.chapterNavTitle}>
+                  {selectedBook?.name} {selectedChapter}
+                </Text>
               </View>
 
-              <ScrollView ref={verseScrollRef} style={styles.verseScroll} contentContainerStyle={styles.verseContent}>
+              <ScrollView
+                ref={verseScrollRef}
+                style={styles.verseScroll}
+                contentContainerStyle={styles.verseContent}
+              >
                 {displayedVerses.length ? (
                   displayedVerses.map((verse, index) => (
                     <VerseItem
@@ -592,7 +781,12 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
                     />
                   ))
                 ) : (
-                  <EmptyState text="Versiculos nao carregados." onRetry={() => selectedChapter && handleSelectChapter(selectedChapter)} />
+                  <EmptyState
+                    text="Versiculos nao carregados."
+                    onRetry={() =>
+                      selectedChapter && handleSelectChapter(selectedChapter)
+                    }
+                  />
                 )}
               </ScrollView>
             </View>
@@ -610,21 +804,52 @@ export const BibliaScreen = ({ onReadingModeChange }: { onReadingModeChange?: (a
 };
 
 const SearchGlyph = ({ active }: { active: boolean }) => (
-  <View style={styles.searchGlyph}>
-    <View style={[styles.searchGlyphCircle, active && styles.searchGlyphCircleActive]} />
-    <View style={[styles.searchGlyphHandle, active && styles.searchGlyphHandleActive]} />
-  </View>
+  <Icon as={Search} color={active ? colors.white : colors.primary} />
 );
 
-const VersionChip = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
-  <TouchableOpacity style={[styles.versionChip, active && styles.versionChipActive]} onPress={onPress}>
-    <Text style={[styles.versionChipText, active && styles.versionChipTextActive]}>{label}</Text>
+const VersionChip = ({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    accessibilityRole="button"
+    accessibilityState={{ selected: active }}
+    style={[styles.versionChip, active && styles.versionChipActive]}
+    onPress={onPress}
+  >
+    <Text
+      style={[styles.versionChipText, active && styles.versionChipTextActive]}
+    >
+      {label}
+    </Text>
   </TouchableOpacity>
 );
 
-const FilterChip = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
-  <TouchableOpacity style={[styles.filterChip, active && styles.filterChipActive]} onPress={onPress}>
-    <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{label}</Text>
+const FilterChip = ({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    accessibilityRole="button"
+    accessibilityState={{ selected: active }}
+    style={[styles.filterChip, active && styles.filterChipActive]}
+    onPress={onPress}
+  >
+    <Text
+      style={[styles.filterChipText, active && styles.filterChipTextActive]}
+    >
+      {label}
+    </Text>
   </TouchableOpacity>
 );
 
@@ -640,13 +865,21 @@ const VerseItem = ({
   <View style={styles.verseContainer}>
     <Text style={styles.verseNumber}>{verse.verse || fallbackNumber}</Text>
     <View style={styles.verseTextBlock}>
-      {reference ? <Text style={styles.verseReference}>{reference}</Text> : null}
+      {reference ? (
+        <Text style={styles.verseReference}>{reference}</Text>
+      ) : null}
       <Text style={styles.verseText}>{verse.text || 'Texto indisponivel'}</Text>
     </View>
   </View>
 );
 
-const EmptyState = ({ text, onRetry }: { text: string; onRetry: () => void }) => (
+const EmptyState = ({
+  text,
+  onRetry,
+}: {
+  text: string;
+  onRetry: () => void;
+}) => (
   <View style={styles.emptyState}>
     <Text style={styles.emptyText}>{text}</Text>
     <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
@@ -656,6 +889,7 @@ const EmptyState = ({ text, onRetry }: { text: string; onRetry: () => void }) =>
 );
 
 const styles = StyleSheet.create({
+  minTouchTarget: { minHeight: 44, justifyContent: 'center' },
   container: {
     flex: 1,
     backgroundColor: colors.white,
@@ -670,21 +904,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 40,
+    padding: spacing.md,
   },
   loadingText: {
     color: colors.textSecondary,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: 12,
   },
   topPanel: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
+    paddingHorizontal: spacing.page,
+    paddingTop: spacing.section,
     paddingBottom: 8,
     backgroundColor: colors.white,
   },
   titleRow: {
-    minHeight: 54,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -695,14 +929,13 @@ const styles = StyleSheet.create({
   },
   kicker: {
     color: colors.accent,
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontSize: typography.caption,
+    fontWeight: '600',
   },
   title: {
     color: colors.textPrimary,
-    fontSize: 30,
-    fontWeight: '900',
+    fontSize: typography.title,
+    fontWeight: '600',
     marginTop: 4,
   },
   searchToggle: {
@@ -710,59 +943,27 @@ const styles = StyleSheet.create({
     height: 46,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 16,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
   },
   searchToggleActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  searchGlyph: {
-    width: 24,
-    height: 24,
-  },
-  searchGlyphCircle: {
-    position: 'absolute',
-    top: 3,
-    left: 3,
-    width: 13,
-    height: 13,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  searchGlyphCircleActive: {
-    borderColor: colors.white,
-  },
-  searchGlyphHandle: {
-    position: 'absolute',
-    right: 4,
-    bottom: 5,
-    width: 9,
-    height: 2,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-    transform: [{ rotate: '45deg' }],
-  },
-  searchGlyphHandleActive: {
-    backgroundColor: colors.white,
-  },
   versionStrip: {
     paddingTop: 8,
     paddingBottom: 8,
   },
   versionChip: {
-    minHeight: 34,
+    minHeight: 44,
     minWidth: 58,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
     paddingHorizontal: 13,
-    borderRadius: 999,
+    borderRadius: radius.md,
     backgroundColor: colors.white,
-    borderWidth: 1,
     borderColor: colors.border,
   },
   versionChipActive: {
@@ -771,24 +972,24 @@ const styles = StyleSheet.create({
   },
   versionChipText: {
     color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: typography.caption,
+    fontWeight: '600',
   },
   versionChipTextActive: {
     color: colors.white,
   },
   filters: {
     flexDirection: 'row',
-    paddingHorizontal: 18,
+    paddingHorizontal: spacing.page,
     paddingBottom: 12,
   },
   filterChip: {
+    minHeight: 44,
     paddingHorizontal: 14,
     paddingVertical: 9,
     marginRight: 8,
-    borderRadius: 999,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
   },
   filterChipActive: {
@@ -797,8 +998,8 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     color: colors.textSecondary,
-    fontWeight: '900',
-    fontSize: 12,
+    fontWeight: '600',
+    fontSize: typography.caption,
   },
   filterChipTextActive: {
     color: colors.white,
@@ -809,34 +1010,33 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 8,
     padding: 4,
-    borderRadius: 15,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
   },
   searchInput: {
     flex: 1,
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: 10,
     paddingVertical: 6,
     color: colors.textPrimary,
-    fontSize: 15,
+    fontSize: typography.body,
   },
   searchButton: {
     minWidth: 78,
-    minHeight: 36,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 11,
+    borderRadius: radius.sm,
     backgroundColor: colors.primary,
   },
   searchButtonText: {
     color: colors.white,
-    fontWeight: '900',
+    fontWeight: '600',
   },
   searchResults: {
     flex: 1,
-    paddingHorizontal: 18,
+    paddingHorizontal: spacing.page,
   },
   resultHeader: {
     flexDirection: 'row',
@@ -846,12 +1046,12 @@ const styles = StyleSheet.create({
   },
   resultTitle: {
     color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: typography.heading,
+    fontWeight: '600',
   },
   clearText: {
     color: colors.accent,
-    fontWeight: '900',
+    fontWeight: '600',
   },
   searchResultItem: {
     paddingBottom: 7,
@@ -862,44 +1062,43 @@ const styles = StyleSheet.create({
   searchResultHint: {
     alignSelf: 'flex-end',
     color: colors.primary,
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: typography.caption,
+    fontWeight: '600',
     marginTop: -2,
   },
   breadcrumb: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: spacing.page,
     paddingBottom: 12,
   },
   breadcrumbText: {
     color: colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: typography.body,
+    fontWeight: '600',
   },
   activeBreadcrumb: {
     color: colors.primary,
   },
   errorText: {
-    marginHorizontal: 18,
+    marginHorizontal: spacing.page,
     marginBottom: 10,
     color: colors.danger,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   listContent: {
-    paddingHorizontal: 18,
-    paddingBottom: 90,
+    paddingHorizontal: spacing.page,
+    paddingBottom: spacing.bottom,
   },
   bookItem: {
-    minHeight: 74,
+    minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
-    padding: 16,
-    borderRadius: 18,
+    marginBottom: 2,
+    padding: spacing.md,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
   },
   bookTextBlock: {
@@ -908,37 +1107,33 @@ const styles = StyleSheet.create({
   },
   bookName: {
     color: colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: typography.subtitle,
+    fontWeight: '600',
   },
   bookMeta: {
+    fontSize: typography.caption,
     color: colors.textSecondary,
     marginTop: 3,
   },
-  arrow: {
-    color: colors.accent,
-    fontSize: 28,
-    fontWeight: '900',
-  },
   gridContainer: {
     paddingHorizontal: 14,
-    paddingBottom: 90,
+    paddingBottom: 80,
   },
   chapterSquare: {
+    minHeight: 44,
     width: '18%',
     aspectRatio: 1,
     margin: '1%',
-    borderRadius: 18,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,
-    borderWidth: 1,
     borderColor: colors.border,
   },
   chapterNumber: {
     color: colors.primary,
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: typography.heading,
+    fontWeight: '600',
   },
   verseScroll: {
     flex: 1,
@@ -947,31 +1142,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chapterNav: {
+    paddingTop: 8,
     alignItems: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: spacing.page,
     paddingBottom: 10,
   },
   chapterNavTitle: {
     color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: typography.subtitle,
+    fontWeight: '600',
   },
   verseContent: {
-    paddingHorizontal: 18,
-    paddingBottom: 94,
+    paddingHorizontal: spacing.page,
+    paddingBottom: 80,
   },
   verseContainer: {
     flexDirection: 'row',
-    paddingVertical: 6,
+    paddingVertical: 3,
     paddingHorizontal: 0,
-    marginBottom: 4,
+    marginBottom: 0,
     backgroundColor: colors.white,
   },
   verseNumber: {
     width: 30,
     color: colors.accent,
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: typography.body,
+    fontWeight: '600',
     marginTop: 2,
   },
   verseTextBlock: {
@@ -979,39 +1175,33 @@ const styles = StyleSheet.create({
   },
   verseReference: {
     color: colors.accent,
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: typography.caption,
+    fontWeight: '600',
     marginBottom: 3,
   },
   verseText: {
     color: colors.textPrimary,
-    fontSize: 16,
-    lineHeight: 25,
+    fontSize: typography.subtitle,
+    lineHeight: 24,
   },
   backButton: {
     position: 'absolute',
     right: 18,
     bottom: 18,
     minWidth: 104,
-    minHeight: 48,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 18,
+    borderRadius: radius.md,
     backgroundColor: colors.accent,
-    shadowColor: colors.cardShadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 6,
   },
   backButtonText: {
     color: colors.white,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
-    padding: 22,
+    padding: spacing.md,
   },
   emptyText: {
     color: colors.textSecondary,
@@ -1019,13 +1209,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   retryButton: {
+    minHeight: 44,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: radius.md,
     backgroundColor: colors.primary,
   },
   retryText: {
     color: colors.white,
-    fontWeight: '900',
+    fontWeight: '600',
   },
 });

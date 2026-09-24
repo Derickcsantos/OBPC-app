@@ -1,9 +1,12 @@
+import { Menu, UserRound } from 'lucide-react-native';
+import { Icon } from './Icon';
 import React from 'react';
 import { Image, Pressable, StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText as Text } from './AppText';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
+import { useAppearance } from '../context/AppearanceContext';
 
 interface HeaderProps {
   title: string;
@@ -11,26 +14,48 @@ interface HeaderProps {
   onProfilePress: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, onMenuPress, onProfilePress }) => {
+export const Header: React.FC<HeaderProps> = ({
+  title,
+  onMenuPress,
+  onProfilePress,
+}) => {
   const { user } = useAuth();
+  const { themePreference } = useAppearance();
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+      <StatusBar barStyle={themePreference === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.container}>
-        <Pressable style={styles.iconButton} onPress={onMenuPress}>
-          <Text style={styles.iconText}>☰</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Abrir menu"
+          style={styles.iconButton}
+          onPress={onMenuPress}
+        >
+          <Icon as={Menu} />
         </Pressable>
 
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
 
-        <Pressable style={styles.iconButton} onPress={onProfilePress}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Abrir perfil"
+          style={styles.iconButton}
+          onPress={onProfilePress}
+        >
           {user?.avatar_url ? (
-            <Image source={{ uri: user.avatar_url }} style={styles.profileImage} />
+            <Image
+              source={{ uri: user.avatar_url }}
+              style={styles.profileImage}
+            />
+          ) : user?.nome_usuario ? (
+            <Text style={styles.profileText}>
+              {user.nome_usuario.trim().charAt(0).toUpperCase()}
+            </Text>
           ) : (
-            <Text style={styles.profileText}>{user?.nome_usuario?.trim().charAt(0).toUpperCase() || 'U'}</Text>
+            <Icon as={UserRound} />
           )}
         </Pressable>
       </View>
@@ -43,7 +68,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   container: {
-    height: 64,
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -56,24 +81,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
-    backgroundColor: colors.homeShortcutBackground,
-  },
-  iconText: {
-    color: colors.primary,
-    fontSize: 24,
-    fontWeight: '900',
-    marginTop: -2,
+    backgroundColor: colors.white,
   },
   profileText: {
     color: colors.primary,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '600',
     width: 30,
     height: 30,
     lineHeight: 30,
     textAlign: 'center',
     borderRadius: 15,
-    backgroundColor: colors.homeShortcutBackground,
+    backgroundColor: colors.white,
   },
   profileImage: {
     width: 34,
@@ -84,8 +103,8 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     color: colors.textPrimary,
-    fontSize: 19,
-    fontWeight: '900',
+    fontSize: 16,
+    fontWeight: '600',
     textAlign: 'center',
     paddingHorizontal: 12,
   },

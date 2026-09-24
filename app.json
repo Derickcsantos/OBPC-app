@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/logo-completo.jpeg",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "plugins": [
       [
         "expo-splash-screen",
@@ -28,12 +28,12 @@
       "**/*"
     ],
     "ios": {
-      "userInterfaceStyle": "light",
+      "userInterfaceStyle": "automatic",
       "supportsTablet": true,
       "bundleIdentifier": "com.obpcapp"
     },
     "android": {
-      "userInterfaceStyle": "light",
+      "userInterfaceStyle": "automatic",
       "package": "com.obpcapp",
       "versionCode": 1,
       "adaptiveIcon": {
