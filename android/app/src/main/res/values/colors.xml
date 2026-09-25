@@ -2,4 +2,11 @@
   <color name="splashscreen_background">#ffffff</color>
   <color name="iconBackground">#ffffff</color>
   <color name="colorPrimary">#023c69</color>
+  <color name="obpc_background">#FFFFFF</color>
+  <color name="obpc_surface">#FFFFFF</color>
+  <color name="obpc_muted">#F2F2F2</color>
+  <color name="obpc_primary">#111111</color>
+  <color name="obpc_secondary">#666666</color>
+  <color name="obpc_border">#DEDEDE</color>
+  <color name="obpc_inverted">#FFFFFF</color>
 </resources>

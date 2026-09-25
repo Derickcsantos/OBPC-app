@@ -95,6 +95,7 @@ export const EventosScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const today = new Date();
@@ -187,29 +188,45 @@ export const EventosScreen = () => {
           </View>
 
           <View style={styles.filters}>
-            <View style={styles.searchBox}>
-              <Icon as={Search} size={18} color={colors.textSecondary} />
-              <TextInput
-                accessibilityLabel="Buscar eventos pelo nome"
-                value={search}
-                onChangeText={setSearch}
-                placeholder="Buscar evento pelo nome"
-                placeholderTextColor={colors.textSecondary}
-                style={styles.searchInput}
-              />
-              {search ? (
-                <TouchableOpacity accessibilityLabel="Limpar busca" onPress={() => setSearch('')} style={styles.clearButton}>
-                  <Icon as={X} size={17} color={colors.textSecondary} />
-                </TouchableOpacity>
-              ) : null}
+            <View style={styles.filterRow}>
+              <View style={styles.searchBox}>
+                <Icon as={Search} size={18} color={colors.textSecondary} />
+                <TextInput
+                  accessibilityLabel="Buscar eventos pelo nome"
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Buscar evento pelo nome"
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.searchInput}
+                />
+                {search ? (
+                  <TouchableOpacity accessibilityLabel="Limpar busca" onPress={() => setSearch('')} style={styles.clearButton}>
+                    <Icon as={X} size={17} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={calendarOpen ? 'Fechar calendario' : 'Abrir calendario'}
+                accessibilityState={{ expanded: calendarOpen, selected: Boolean(selectedDate) }}
+                style={[styles.calendarButton, (calendarOpen || selectedDate) && styles.calendarButtonActive]}
+                onPress={() => setCalendarOpen(current => !current)}
+              >
+                <Icon as={CalendarDays} size={21} color={calendarOpen || selectedDate ? colors.white : colors.primary} />
+              </TouchableOpacity>
             </View>
-            <EventCalendar
-              eventos={sortedEventos}
-              month={visibleMonth}
-              selectedDate={selectedDate}
-              onMonthChange={setVisibleMonth}
-              onSelectDate={setSelectedDate}
-            />
+            {calendarOpen ? (
+              <EventCalendar
+                eventos={sortedEventos}
+                month={visibleMonth}
+                selectedDate={selectedDate}
+                onMonthChange={setVisibleMonth}
+                onSelectDate={date => {
+                  setSelectedDate(date);
+                  setCalendarOpen(false);
+                }}
+              />
+            ) : null}
           </View>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -687,7 +704,9 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   filters: { paddingHorizontal: spacing.page, paddingBottom: 14 },
+  filterRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   searchBox: {
+    flex: 1,
     minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
@@ -698,6 +717,15 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, minHeight: 44, color: colors.textPrimary, paddingVertical: 0 },
   clearButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  calendarButton: {
+    width: 46,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
+  },
+  calendarButtonActive: { backgroundColor: colors.primary },
   calendarCard: { marginTop: 12, padding: 12, borderRadius: radius.md, backgroundColor: colors.surfaceMuted },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   calendarTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },

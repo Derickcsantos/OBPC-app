@@ -320,8 +320,22 @@ export const postOracao = async (oracao: Oracao) => {
 export const updateOracao = (id: string, payload: Partial<Oracao>) =>
   updateResource<Oracao, Partial<Oracao>>('/api/oracoes', id, payload);
 export const deleteOracao = (id: string) => deleteResource<Oracao>('/api/oracoes', id);
-export const marcarOracaoComoOrada = async (id: string): Promise<void> => {
-  await api.post(`/api/oracoes/${id}/orado`);
+export interface OracaoOradaResponse {
+  usuario_id?: string;
+  oracao_id?: string;
+  created_at?: string;
+  orado: boolean;
+}
+
+export const marcarOracaoComoOrada = async (id: string): Promise<OracaoOradaResponse> => {
+  const response = await api.post(`/api/oracoes/${encodeURIComponent(id)}/orado`);
+  const data = extractData<OracaoOradaResponse>(response);
+
+  if (!data?.orado) {
+    throw new Error('A API nao confirmou que o pedido foi marcado como orado.');
+  }
+
+  return data;
 };
 
 export const getBibleVersions = async (): Promise<BibleVersion[]> => {

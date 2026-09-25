@@ -22,6 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import { Oracao } from '../types';
+import axios from 'axios';
 
 type OracaoView = 'list' | 'detail' | 'create';
 
@@ -130,9 +131,17 @@ export const OracaoScreen = () => {
     try {
       await marcarOracaoComoOrada(id);
       setOradosIds(current => new Set(current).add(id));
+      setOracoes(current => current.map(item => item.oracao_id === id ? { ...item, orado_por_mim: true } : item));
+      setSelectedOracao(current => current?.oracao_id === id ? { ...current, orado_por_mim: true } : current);
     } catch (error) {
       console.error('Erro ao marcar pedido como orado:', error);
-      Alert.alert('Nao foi possivel marcar', 'Verifique sua conexao e tente novamente.');
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+      const message = status === 401
+        ? 'Sua sessao expirou. Saia do perfil, entre novamente e tente de novo.'
+        : axios.isAxiosError(error) && typeof error.response?.data?.message === 'string'
+          ? error.response.data.message
+          : 'Verifique sua conexao e tente novamente.';
+      Alert.alert('Nao foi possivel marcar', message);
     } finally {
       setOrandoIds(current => {
         const next = new Set(current);
@@ -271,26 +280,26 @@ export const OracaoScreen = () => {
 
         {oracoes.length ? (
           oracoes.map((oracao, index) => (
-            <TouchableOpacity
+            <View
               key={oracao.oracao_id || `oracao-${index}`}
               style={styles.prayerCard}
-              activeOpacity={0.82}
-              onPress={() => openDetail(oracao)}
             >
-              <View style={styles.prayerHeader}>
-                <Text style={styles.prayerName} numberOfLines={1}>
-                  {oracao.nome_pedido || 'Pedido de oracao'}
+              <TouchableOpacity activeOpacity={0.82} onPress={() => openDetail(oracao)}>
+                <View style={styles.prayerHeader}>
+                  <Text style={styles.prayerName} numberOfLines={1}>
+                    {oracao.nome_pedido || 'Pedido de oracao'}
+                  </Text>
+                  <Text style={styles.prayerStatus}>
+                    {oracao.status || 'em andamento'}
+                  </Text>
+                </View>
+                <Text style={styles.prayerText} numberOfLines={3}>
+                  {oracao.descricao_pedido || 'Toque para ver detalhes.'}
                 </Text>
-                <Text style={styles.prayerStatus}>
-                  {oracao.status || 'em andamento'}
-                </Text>
-              </View>
-              <Text style={styles.prayerText} numberOfLines={3}>
-                {oracao.descricao_pedido || 'Toque para ver detalhes.'}
-              </Text>
-              <Text style={styles.openText}>Abrir pedido</Text>
+                <Text style={styles.openText}>Abrir pedido</Text>
+              </TouchableOpacity>
               <OradoButton oracao={oracao} loading={Boolean(oracao.oracao_id && orandoIds.has(oracao.oracao_id))} marked={Boolean(oracao.orado || oracao.orado_por_mim || (oracao.oracao_id && oradosIds.has(oracao.oracao_id)))} onPress={() => handleOrado(oracao)} compact />
-            </TouchableOpacity>
+            </View>
           ))
         ) : (
           <Text style={styles.emptyText}>
@@ -340,7 +349,7 @@ const OradoButton = ({ oracao, loading, marked, onPress, compact = false }: { or
       accessibilityState={{ disabled, selected: marked }}
       style={[styles.prayedButton, compact && styles.prayedButtonCompact, marked && styles.prayedButtonMarked]}
       disabled={disabled}
-      onPress={event => { event.stopPropagation(); onPress(); }}
+      onPress={onPress}
     >
       {loading ? <ActivityIndicator size="small" color={colors.primary} /> : <Icon as={Check} size={17} color={colors.primary} />}
       <Text style={styles.prayedButtonText}>{marked ? 'Voce orou' : 'Marcar como orado'}</Text>

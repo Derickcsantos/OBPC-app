@@ -1,11 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
   Linking,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -72,6 +70,8 @@ export const SobreScreen = ({
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      nestedScrollEnabled
+      directionalLockEnabled
     >
       <View style={styles.logoCircle}>
         <Image source={logo} style={styles.logo} resizeMode="contain" />
@@ -87,7 +87,9 @@ export const SobreScreen = ({
           style={styles.socialButton}
           onPress={() => openUrl(instagramUrl)}
         >
-          <InstagramIcon width={24} height={24} />
+          <View style={styles.socialIconBackdrop}>
+            <InstagramIcon width={20} height={20} />
+          </View>
           <Text style={styles.socialText}>Instagram</Text>
         </TouchableOpacity>
 
@@ -95,7 +97,9 @@ export const SobreScreen = ({
           style={styles.socialButton}
           onPress={() => openUrl(whatsappUrl)}
         >
-          <WhatsappIcon width={24} height={24} />
+          <View style={styles.socialIconBackdrop}>
+            <WhatsappIcon width={20} height={20} />
+          </View>
           <Text style={styles.socialText}>WhatsApp</Text>
         </TouchableOpacity>
       </View>
@@ -140,58 +144,26 @@ const InfinitePeopleCarousel = ({
   people: Pessoa[];
   onSelect: (person: Pessoa) => void;
 }) => {
-  const listRef = useRef<FlatList<Pessoa>>(null);
-  const loopingPeople =
-    people.length > 1 ? [...people, ...people, ...people] : people;
-  const middleStart = people.length;
-
-  useEffect(() => {
-    if (people.length > 1) {
-      requestAnimationFrame(() =>
-        listRef.current?.scrollToIndex({ index: middleStart, animated: false }),
-      );
-    }
-  }, [middleStart, people.length]);
-
-  const keepCarouselInfinite = (
-    event: NativeSyntheticEvent<NativeScrollEvent>,
-  ) => {
-    if (people.length <= 1) {
-      return;
-    }
-
-    const index = Math.round(
-      event.nativeEvent.contentOffset.x / (cardWidth + cardGap),
-    );
-    if (index < people.length) {
-      listRef.current?.scrollToIndex({
-        index: index + people.length,
-        animated: false,
-      });
-    } else if (index >= people.length * 2) {
-      listRef.current?.scrollToIndex({
-        index: index - people.length,
-        animated: false,
-      });
-    }
-  };
-
   return (
     <FlatList
-      ref={listRef}
       horizontal
       nestedScrollEnabled
-      data={loopingPeople}
+      scrollEnabled={people.length > 1}
+      directionalLockEnabled
+      data={people}
       keyExtractor={(item, index) => `${item.pessoa_id}-${index}`}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.peopleCarousel}
       ItemSeparatorComponent={PeopleSeparator}
+      decelerationRate="fast"
+      snapToInterval={cardWidth + cardGap}
+      snapToAlignment="start"
+      disableIntervalMomentum
       getItemLayout={(_, index) => ({
         length: cardWidth + cardGap,
         offset: (cardWidth + cardGap) * index,
         index,
       })}
-      onMomentumScrollEnd={keepCarouselInfinite}
       renderItem={({ item }) => (
         <TouchableOpacity
           style={styles.personCard}
@@ -265,6 +237,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     borderRadius: radius.md,
     backgroundColor: colors.primarySoft,
+  },
+  socialIconBackdrop: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
   },
   socialText: { marginLeft: 8, color: colors.primary, fontWeight: '600' },
   infoBlock: {
