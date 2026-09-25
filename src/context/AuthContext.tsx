@@ -1,9 +1,3 @@
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
@@ -25,14 +19,26 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-if (Platform.OS !== 'web') {
-  GoogleSignin.configure({
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    offlineAccess: false,
-    profileImageSize: 240,
-  });
-}
+type NativeGoogleSigninModule = typeof import('@react-native-google-signin/google-signin');
+
+const loadNativeGoogleSignin = (): NativeGoogleSigninModule | null => {
+  if (Platform.OS === 'web') return null;
+
+  try {
+    const nativeModule = require('@react-native-google-signin/google-signin') as NativeGoogleSigninModule;
+    nativeModule.GoogleSignin.configure({
+      iosClientId: GOOGLE_IOS_CLIENT_ID,
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      offlineAccess: false,
+      profileImageSize: 240,
+    });
+    return nativeModule;
+  } catch {
+    return null;
+  }
+};
+
+const nativeGoogleSignin = loadNativeGoogleSignin();
 
 type GoogleCredentialResponse = { credential?: string };
 type GooglePromptNotification = {
@@ -165,7 +171,7 @@ const clearStoredSession = async () => {
 };
 
 const getSignInErrorMessage = (error: unknown): string => {
-  if (isErrorWithCode(error)) {
+  if (nativeGoogleSignin?.isErrorWithCode(error)) {
     if (error.code === 'DEVELOPER_ERROR' || error.message?.includes('DEVELOPER_ERROR')) {
       return [
         'Configuração do Google Sign-In inválida no Android.',
@@ -174,11 +180,11 @@ const getSignInErrorMessage = (error: unknown): string => {
       ].join('\n\n');
     }
 
-    if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+    if (error.code === nativeGoogleSignin.statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
       return 'O Google Play Services não está disponível ou precisa ser atualizado.';
     }
 
-    if (error.code === statusCodes.IN_PROGRESS) {
+    if (error.code === nativeGoogleSignin.statusCodes.IN_PROGRESS) {
       return 'O login com Google já está em andamento.';
     }
   }
@@ -228,13 +234,19 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         return;
       }
 
-      if (Platform.OS === 'android') {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      if (!nativeGoogleSignin) {
+        throw new Error(
+          'O login Google exige um development build ou APK proprio. O restante do app pode ser usado normalmente no Expo Go.',
+        );
       }
 
-      const response = await GoogleSignin.signIn();
+      if (Platform.OS === 'android') {
+        await nativeGoogleSignin.GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
 
-      if (!isSuccessResponse(response)) {
+      const response = await nativeGoogleSignin.GoogleSignin.signIn();
+
+      if (!nativeGoogleSignin.isSuccessResponse(response)) {
         return;
       }
 
@@ -257,7 +269,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const signOut = async () => {
     try {
-      if (Platform.OS !== 'web') await GoogleSignin.signOut();
+      if (nativeGoogleSignin) await nativeGoogleSignin.GoogleSignin.signOut();
     } finally {
       await clearStoredSession();
       setApiAccessToken(null);
