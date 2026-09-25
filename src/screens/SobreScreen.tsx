@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
+import { useAppearance } from '../context/AppearanceContext';
 import InstagramIcon from '../assets/instagram-svgrepo-com.svg';
 import WhatsappIcon from '../assets/whatsapp-svgrepo-com.svg';
 import { getPessoas } from '../services/api';
@@ -19,7 +20,8 @@ import { colors } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import { Pessoa } from '../types';
 
-const logo = require('../assets/logo-completo1.png');
+const lightLogo = require('../assets/logo-completo1.png');
+const darkLogo = require('../assets/logo-completo-dark.jpeg');
 const personFallback = require('../../logo.jpg');
 const cardWidth = 176;
 const cardGap = 12;
@@ -43,6 +45,8 @@ export const SobreScreen = ({
 }: {
   onSelectPerson: (person: Pessoa) => void;
 }) => {
+  const { themePreference } = useAppearance();
+  const logo = themePreference === 'dark' ? darkLogo : lightLogo;
   const [people, setPeople] = useState<Pessoa[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

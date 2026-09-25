@@ -21,10 +21,12 @@ import {
   View,
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
+import { useAppearance } from '../context/AppearanceContext';
 import { colors } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 
-const logo = require('../../logo.jpg');
+const lightLogo = require('../../logo.jpg');
+const darkLogo = require('../assets/logo-completo-dark.jpeg');
 type ShortcutIcon = LucideIcon;
 
 export type HomeShortcutRoute =
@@ -43,6 +45,9 @@ const openExternalUrl = async (url: string) => {
 };
 
 export const HomeScreen = ({ onNavigate }: HomeScreenProps) => {
+  const { themePreference } = useAppearance();
+  const logo = themePreference === 'dark' ? darkLogo : lightLogo;
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
