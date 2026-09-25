@@ -24,7 +24,10 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <StatusBar barStyle={themePreference === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      <StatusBar
+        barStyle={themePreference === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={themePreference === 'dark' ? '#000000' : '#FFFFFF'}
+      />
       <View style={styles.container}>
         <Pressable
           accessibilityRole="button"
