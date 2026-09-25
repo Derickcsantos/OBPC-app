@@ -20,9 +20,11 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 type NativeGoogleSigninModule = typeof import('@react-native-google-signin/google-signin');
+let nativeGoogleSignin: NativeGoogleSigninModule | null | undefined;
 
 const loadNativeGoogleSignin = (): NativeGoogleSigninModule | null => {
   if (Platform.OS === 'web') return null;
+  if (nativeGoogleSignin !== undefined) return nativeGoogleSignin;
 
   try {
     const nativeModule = require('@react-native-google-signin/google-signin') as NativeGoogleSigninModule;
@@ -32,13 +34,13 @@ const loadNativeGoogleSignin = (): NativeGoogleSigninModule | null => {
       offlineAccess: false,
       profileImageSize: 240,
     });
-    return nativeModule;
+    nativeGoogleSignin = nativeModule;
   } catch {
-    return null;
+    nativeGoogleSignin = null;
   }
-};
 
-const nativeGoogleSignin = loadNativeGoogleSignin();
+  return nativeGoogleSignin;
+};
 
 type GoogleCredentialResponse = { credential?: string };
 type GooglePromptNotification = {
@@ -171,7 +173,8 @@ const clearStoredSession = async () => {
 };
 
 const getSignInErrorMessage = (error: unknown): string => {
-  if (nativeGoogleSignin?.isErrorWithCode(error)) {
+  const googleSignin = nativeGoogleSignin ?? null;
+  if (googleSignin?.isErrorWithCode(error)) {
     if (error.code === 'DEVELOPER_ERROR' || error.message?.includes('DEVELOPER_ERROR')) {
       return [
         'Configuração do Google Sign-In inválida no Android.',
@@ -180,11 +183,11 @@ const getSignInErrorMessage = (error: unknown): string => {
       ].join('\n\n');
     }
 
-    if (error.code === nativeGoogleSignin.statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+    if (error.code === googleSignin.statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
       return 'O Google Play Services não está disponível ou precisa ser atualizado.';
     }
 
-    if (error.code === nativeGoogleSignin.statusCodes.IN_PROGRESS) {
+    if (error.code === googleSignin.statusCodes.IN_PROGRESS) {
       return 'O login com Google já está em andamento.';
     }
   }
@@ -207,6 +210,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         const storedSession = await readSession();
         setApiAccessToken(storedSession?.access_token ?? null);
         setSession(storedSession);
+      } catch {
+        setApiAccessToken(null);
+        setSession(null);
       } finally {
         setIsRestoring(false);
       }
@@ -234,19 +240,20 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         return;
       }
 
-      if (!nativeGoogleSignin) {
+      const googleSignin = loadNativeGoogleSignin();
+      if (!googleSignin) {
         throw new Error(
           'O login Google exige um development build ou APK proprio. O restante do app pode ser usado normalmente no Expo Go.',
         );
       }
 
       if (Platform.OS === 'android') {
-        await nativeGoogleSignin.GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        await googleSignin.GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       }
 
-      const response = await nativeGoogleSignin.GoogleSignin.signIn();
+      const response = await googleSignin.GoogleSignin.signIn();
 
-      if (!nativeGoogleSignin.isSuccessResponse(response)) {
+      if (!googleSignin.isSuccessResponse(response)) {
         return;
       }
 

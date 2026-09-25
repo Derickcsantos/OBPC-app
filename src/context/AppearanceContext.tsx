@@ -33,19 +33,27 @@ const AppearanceContext = createContext<AppearanceContextValue>({
 export const AppearanceProvider = ({ children }: React.PropsWithChildren) => {
   const [fontSizePreference, setPreference] = useState<FontSizePreference>('normal');
   const [themePreference, setTheme] = useState<ThemePreference>('light');
+  const [preferencesReady, setPreferencesReady] = useState(false);
 
   useEffect(() => {
-    getCachedValue<FontSizePreference>(FONT_SIZE_KEY).then(savedPreference => {
-      if (savedPreference && savedPreference in fontSizeOffsets) {
-        setPreference(savedPreference);
-      }
-    });
-    getCachedValue<ThemePreference>(THEME_KEY).then(savedTheme => {
-      if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
-    });
+    Promise.all([
+      getCachedValue<FontSizePreference>(FONT_SIZE_KEY),
+      getCachedValue<ThemePreference>(THEME_KEY),
+    ])
+      .then(([savedPreference, savedTheme]) => {
+        if (savedPreference && savedPreference in fontSizeOffsets) {
+          setPreference(savedPreference);
+        }
+        if (savedTheme === 'light' || savedTheme === 'dark') {
+          setTheme(savedTheme);
+        }
+      })
+      .finally(() => setPreferencesReady(true));
   }, []);
 
   useEffect(() => {
+    if (!preferencesReady) return;
+
     if (Platform.OS !== 'web' && typeof Appearance.setColorScheme === 'function') {
       Appearance.setColorScheme(themePreference);
     }
@@ -62,7 +70,7 @@ export const AppearanceProvider = ({ children }: React.PropsWithChildren) => {
       root.style.setProperty('--obpc-inverted', dark ? '#000000' : '#FFFFFF');
       root.style.colorScheme = themePreference;
     }
-  }, [themePreference]);
+  }, [preferencesReady, themePreference]);
 
   const setFontSizePreference = (value: FontSizePreference) => {
     setPreference(value);
