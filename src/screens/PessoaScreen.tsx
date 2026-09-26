@@ -43,7 +43,7 @@ export const PessoaScreen = ({
     <Image
       source={pessoa.url_imagem ? { uri: pessoa.url_imagem } : fallbackImage}
       style={styles.photo}
-      resizeMode="cover"
+      resizeMode="contain"
     />
     <Text style={styles.name}>{pessoa.nome || 'Nome não informado'}</Text>
     <Text style={styles.role}>{pessoa.cargo || 'Cargo não informado'}</Text>

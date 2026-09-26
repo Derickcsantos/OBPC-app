@@ -21,31 +21,40 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { user } = useAuth();
   const { themePreference } = useAppearance();
+  const isDark = themePreference === 'dark';
+  const chromeBackground = isDark ? '#000000' : '#FFFFFF';
+  const chromeForeground = isDark ? '#FFFFFF' : '#111111';
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <SafeAreaView
+      edges={['top']}
+      style={[styles.safeArea, { backgroundColor: chromeBackground }]}
+    >
       <StatusBar
-        barStyle={themePreference === 'dark' ? 'light-content' : 'dark-content'}
-        backgroundColor={themePreference === 'dark' ? '#000000' : '#FFFFFF'}
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={chromeBackground}
       />
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: chromeBackground }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Abrir menu"
-          style={styles.iconButton}
+          style={[styles.iconButton, { backgroundColor: chromeBackground }]}
           onPress={onMenuPress}
         >
-          <Icon as={Menu} />
+          <Icon as={Menu} color={chromeForeground} />
         </Pressable>
 
-        <Text style={styles.title} numberOfLines={1}>
+        <Text
+          style={[styles.title, { color: chromeForeground }]}
+          numberOfLines={1}
+        >
           {title}
         </Text>
 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Abrir perfil"
-          style={styles.iconButton}
+          style={[styles.iconButton, { backgroundColor: chromeBackground }]}
           onPress={onProfilePress}
         >
           {user?.avatar_url ? (
@@ -54,11 +63,19 @@ export const Header: React.FC<HeaderProps> = ({
               style={styles.profileImage}
             />
           ) : user?.nome_usuario ? (
-            <Text style={styles.profileText}>
+            <Text
+              style={[
+                styles.profileText,
+                {
+                  color: chromeForeground,
+                  backgroundColor: chromeBackground,
+                },
+              ]}
+            >
               {user.nome_usuario.trim().charAt(0).toUpperCase()}
             </Text>
           ) : (
-            <Icon as={UserRound} />
+            <Icon as={UserRound} color={chromeForeground} />
           )}
         </Pressable>
       </View>

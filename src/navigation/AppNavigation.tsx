@@ -28,6 +28,7 @@ import { PessoaScreen } from '../screens/PessoaScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SobreScreen } from '../screens/SobreScreen';
 import { colors } from '../theme/colors';
+import { useAppearance } from '../context/AppearanceContext';
 import { Pessoa } from '../types';
 
 type AppRoute =
@@ -88,6 +89,11 @@ const titles: Record<AppRoute, string> = {
 };
 
 export const AppNavigation = () => {
+  const { themePreference } = useAppearance();
+  const isDark = themePreference === 'dark';
+  const chromeBackground = isDark ? '#000000' : '#FFFFFF';
+  const activeColor = isDark ? '#FFFFFF' : '#111111';
+  const inactiveColor = isDark ? '#AFAFAF' : '#666666';
   const [currentRoute, setCurrentRoute] = useState<AppRoute>('Inicio');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<Pessoa | null>(null);
@@ -148,7 +154,7 @@ export const AppNavigation = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: chromeBackground }]}>
       {!(currentRoute === 'Biblia' && bibleReadingMode) ? (
         <Header
           title={titles[currentRoute]}
@@ -158,13 +164,14 @@ export const AppNavigation = () => {
       ) : null}
       <View style={styles.content}>{renderScreen()}</View>
 
-      <SafeAreaView edges={['bottom']} style={styles.bottomSafe}>
-        <View style={styles.tabBar}>
+      <SafeAreaView
+        edges={['bottom']}
+        style={[styles.bottomSafe, { backgroundColor: chromeBackground }]}
+      >
+        <View style={[styles.tabBar, { backgroundColor: chromeBackground }]}>
           {tabs.map(tab => {
             const active = currentRoute === tab.key;
-            const iconColor = active
-              ? colors.textPrimary
-              : colors.textSecondary;
+            const iconColor = active ? activeColor : inactiveColor;
 
             return (
               <Pressable
@@ -188,7 +195,12 @@ export const AppNavigation = () => {
                   />
                 </View>
                 <Text
-                  style={[styles.tabLabel, active && styles.tabLabelActive]}
+                  style={[
+                    styles.tabLabel,
+                    { color: inactiveColor },
+                    active && styles.tabLabelActive,
+                    active && { color: activeColor },
+                  ]}
                   numberOfLines={2}
                 >
                   {tab.label}

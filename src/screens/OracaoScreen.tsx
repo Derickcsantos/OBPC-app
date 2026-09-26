@@ -410,6 +410,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: radius.md,
     backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
   prayerHeader: {
@@ -512,12 +513,14 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: typography.title,
     fontWeight: '600',
+    textAlign: 'center',
   },
   detailText: {
     color: colors.textSecondary,
     fontSize: typography.subtitle,
     lineHeight: 25,
     marginTop: 14,
+    textAlign: 'center',
   },
   detailMeta: {
     flexDirection: 'row',

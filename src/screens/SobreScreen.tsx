@@ -173,7 +173,7 @@ const InfinitePeopleCarousel = ({
           <Image
             source={item.url_imagem ? { uri: item.url_imagem } : personFallback}
             style={styles.personImage}
-            resizeMode="cover"
+            resizeMode="contain"
           />
           <View style={styles.personBody}>
             <Text style={styles.personName} numberOfLines={2}>
