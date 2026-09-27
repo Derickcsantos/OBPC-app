@@ -44,7 +44,7 @@ import {
 import type { AuthSession } from '../types/auth';
 import { enqueueValue, getCachedValue, getQueue, isOnline, isWifi, setCachedValue, setQueue } from './offlineStorage';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL?.trim() || 'https://obpc.derickcampossantos1.workers.dev';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL?.trim() || 'http://127.0.0.1:3000';
 
 // https://obpc.derickcampossantos1.workers.dev
 

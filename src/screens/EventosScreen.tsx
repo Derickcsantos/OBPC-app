@@ -52,6 +52,38 @@ const formatDate = (date?: string) => {
 
 const formatTime = (time?: string | null) => (time ? time.slice(0, 5) : null);
 
+const formatGoogleCalendarDate = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
+};
+
+export const getGoogleCalendarUrl = (evento: Evento) => {
+  const datePart = evento.data_evento?.slice(0, 10);
+  const timePart = formatTime(evento.hora_inicio);
+  let start: Date;
+
+  if (datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart) && timePart) {
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute] = timePart.split(':').map(Number);
+    start = new Date(year, month - 1, day, hour, minute, 0);
+  } else {
+    start = new Date(evento.data_evento);
+  }
+
+  if (Number.isNaN(start.getTime())) return null;
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const details = [evento.descricao_evento, evento.observacao_evento || evento.observacoes_evento].filter(Boolean).join('\n\n');
+  const location = evento.endereco_evento || evento.local || '';
+  const params = [
+    ['action', 'TEMPLATE'],
+    ['text', evento.nome_evento || 'Evento OBPC'],
+    ['dates', `${formatGoogleCalendarDate(start)}/${formatGoogleCalendarDate(end)}`],
+    ['details', details],
+    ['location', location],
+  ].map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&');
+  return `https://calendar.google.com/calendar/r/eventedit?${params}`;
+};
+
 const toImageUrl = (value?: string | null) => {
   if (!value) {
     return null;
@@ -445,6 +477,17 @@ const EventoDetail = ({
     }
   };
 
+  const addToCalendar = async () => {
+    const calendarUrl = getGoogleCalendarUrl(evento);
+    if (!calendarUrl) {
+      Alert.alert('Data indisponível', 'Este evento ainda não possui uma data válida para adicionar ao calendário.');
+      return;
+    }
+    const canOpen = await Linking.canOpenURL(calendarUrl);
+    if (canOpen) await Linking.openURL(calendarUrl);
+    else Alert.alert('Não foi possível abrir', 'Abra o Google Calendar no navegador e tente novamente.');
+  };
+
   const mainImage = getMainImage(evento);
   const auxiliaryPhotos = getAuxiliaryPhotos(evento);
   const observations = evento.observacao_evento || evento.observacoes_evento;
@@ -583,6 +626,11 @@ const EventoDetail = ({
       <Text style={styles.detailText}>
         {evento.descricao_evento || 'Descricao indisponivel.'}
       </Text>
+
+      <TouchableOpacity accessibilityRole="link" style={styles.detailCalendarButton} onPress={addToCalendar}>
+        <Icon as={CalendarDays} size={18} />
+        <Text style={styles.calendarButtonText}>Adicionar ao calendário</Text>
+      </TouchableOpacity>
 
       {observations ? (
         <View style={styles.detailSection}>
@@ -931,6 +979,20 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     lineHeight: 23,
   },
+  detailCalendarButton: {
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    marginHorizontal: spacing.page,
+    marginTop: spacing.section,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceMuted,
+  },
+  calendarButtonText: { color: colors.textPrimary, fontWeight: '600' },
   detailFacts: {
     flexDirection: 'row',
     flexWrap: 'wrap',

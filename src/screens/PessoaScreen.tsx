@@ -1,9 +1,11 @@
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, X } from 'lucide-react-native';
 import { Icon } from '../components/Icon';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Image,
   Linking,
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -29,7 +31,11 @@ export const PessoaScreen = ({
 }: {
   pessoa: Pessoa;
   onBack: () => void;
-}) => (
+}) => {
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const photoSource = pessoa.url_imagem ? { uri: pessoa.url_imagem } : fallbackImage;
+
+  return <>
   <ScrollView
     style={styles.container}
     contentContainerStyle={styles.content}
@@ -40,11 +46,10 @@ export const PessoaScreen = ({
       <Text style={styles.backText}>Voltar</Text>
     </TouchableOpacity>
 
-    <Image
-      source={pessoa.url_imagem ? { uri: pessoa.url_imagem } : fallbackImage}
-      style={styles.photo}
-      resizeMode="contain"
-    />
+    <Pressable accessibilityRole="button" accessibilityLabel={`Ampliar foto de ${pessoa.nome}`} onPress={() => setPhotoOpen(true)}>
+      <Image source={photoSource} style={styles.photo} resizeMode="contain" />
+      <Text style={styles.photoHint}>Toque para ampliar</Text>
+    </Pressable>
     <Text style={styles.name}>{pessoa.nome || 'Nome não informado'}</Text>
     <Text style={styles.role}>{pessoa.cargo || 'Cargo não informado'}</Text>
 
@@ -79,7 +84,15 @@ export const PessoaScreen = ({
       </View>
     ) : null}
   </ScrollView>
-);
+  <Modal visible={photoOpen} animationType="fade" transparent={false} onRequestClose={() => setPhotoOpen(false)}>
+    <View style={styles.photoViewer}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Fechar foto" style={styles.closePhoto} onPress={() => setPhotoOpen(false)}><Icon as={X} color="#FFFFFF" /></Pressable>
+      <Image source={photoSource} style={styles.fullPhoto} resizeMode="contain" />
+      <Text style={styles.fullPhotoName}>{pessoa.nome || 'Pessoa'}</Text>
+    </View>
+  </Modal>
+  </>;
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
@@ -105,6 +118,30 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surfaceMuted,
   },
+  photoHint: {
+    color: colors.textSecondary,
+    fontSize: typography.caption,
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  photoViewer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+  },
+  closePhoto: {
+    position: 'absolute',
+    top: 44,
+    right: 16,
+    zIndex: 2,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullPhoto: { width: '100%', height: '82%' },
+  fullPhotoName: { color: '#FFFFFF', fontSize: typography.subtitle, fontWeight: '600', marginTop: 10 },
   name: {
     color: colors.textPrimary,
     fontSize: typography.title,

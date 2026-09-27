@@ -31,7 +31,7 @@ import { Oracao } from '../types';
 import axios from 'axios';
 
 type OracaoView = 'list' | 'detail' | 'create';
-type PrayerTab = 'all' | 'history';
+type PrayerTab = 'all' | 'history' | 'pending';
 
 export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab }) => {
   const { user } = useAuth();
@@ -306,16 +306,19 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
         {user ? (
           <View style={styles.tabs}>
             <TouchableOpacity style={[styles.tab, activeTab === 'all' && styles.tabActive]} onPress={() => setActiveTab('all')}>
-              <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>Pedidos</Text>
+              <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>Todos</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.tab, activeTab === 'history' && styles.tabActive]} onPress={() => setActiveTab('history')}>
-              <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>Orações em que orei</Text>
+              <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>Já orei</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.tab, activeTab === 'pending' && styles.tabActive]} onPress={() => setActiveTab('pending')}>
+              <Text style={[styles.tabText, activeTab === 'pending' && styles.tabTextActive]}>Ainda não orei</Text>
             </TouchableOpacity>
           </View>
         ) : null}
 
-        {(activeTab === 'history' ? historico : oracoes).length ? (
-          (activeTab === 'history' ? historico : oracoes).map((oracao, index) => (
+        {(activeTab === 'history' ? historico : activeTab === 'pending' ? oracoes.filter(item => !item.orado && !item.orado_por_mim) : oracoes).length ? (
+          (activeTab === 'history' ? historico : activeTab === 'pending' ? oracoes.filter(item => !item.orado && !item.orado_por_mim) : oracoes).map((oracao, index) => (
             <View
               key={oracao.oracao_id || `oracao-${index}`}
               style={styles.prayerCard}
@@ -339,7 +342,7 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
           ))
         ) : (
           <Text style={styles.emptyText}>
-            {activeTab === 'history' ? 'Você ainda não marcou nenhum pedido como orado.' : 'Nenhum pedido de oracao no momento.'}
+            {activeTab === 'history' ? 'Você ainda não marcou nenhum pedido como orado.' : activeTab === 'pending' ? 'Não há pedidos pendentes para você.' : 'Nenhum pedido de oracao no momento.'}
           </Text>
         )}
       </ScrollView>
@@ -388,7 +391,7 @@ const OradoButton = ({ oracao, loading, marked, onPress, compact = false }: { or
       onPress={onPress}
     >
       {loading ? <ActivityIndicator size="small" color={colors.primary} /> : <Icon as={marked ? Check : Heart} size={17} color={colors.primary} />}
-      <Text style={styles.prayedButtonText}>{marked ? 'Você orou · desfazer' : 'Ainda não orou'}</Text>
+      <Text style={styles.prayedButtonText}>{marked ? 'Você orou · desfazer' : 'Marcar como orado'}</Text>
     </TouchableOpacity>
   );
 };
