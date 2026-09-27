@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from '../config/auth';
-import { googleLogin, setApiAccessToken } from '../services/api';
+import { googleLogin, setApiAccessToken, setApiUnauthorizedHandler } from '../services/api';
 import { AuthSession, AuthUser } from '../types/auth';
 
 const SESSION_STORAGE_KEY = 'obpc.auth.session';
@@ -219,6 +219,15 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     };
 
     restoreSession();
+  }, []);
+
+  useEffect(() => {
+    setApiUnauthorizedHandler(async () => {
+      await clearStoredSession();
+      setApiAccessToken(null);
+      setSession(null);
+    });
+    return () => setApiUnauthorizedHandler(null);
   }, []);
 
   const signInWithGoogle = async () => {

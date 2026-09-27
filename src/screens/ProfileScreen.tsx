@@ -146,6 +146,7 @@ export const ProfileScreen = () => {
           <View style={styles.card}>
             <InfoRow label="Nome" value={user.nome_usuario} />
             <InfoRow label="E-mail" value={user.email_usuario} />
+            <InfoRow label="Papel" value={user.role === 'admin' ? 'Administrador' : 'Usuário'} />
             <InfoRow label="Igreja" value="OBPC" />
           </View>
 

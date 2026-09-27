@@ -22,6 +22,14 @@
           "iosUrlScheme": "com.googleusercontent.apps.834990693788-n2fg81bltsntguugdca3j0i11i8ejb6h"
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita que o OBPC acesse suas fotos para enviar imagens dos conteúdos do aplicativo.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
       "expo-secure-store"
     ],
     "assetBundlePatterns": [

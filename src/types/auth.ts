@@ -3,6 +3,7 @@ export interface AuthUser {
   nome_usuario: string;
   email_usuario: string;
   avatar_url: string | null;
+  role: 'user' | 'admin';
 }
 
 export interface AuthSession {

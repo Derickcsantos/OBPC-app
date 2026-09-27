@@ -8,6 +8,9 @@ import {
   Church,
   UserRound,
   Settings,
+  NotebookPen,
+  History,
+  ShieldCheck,
   X,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -27,6 +30,9 @@ import { OracaoScreen } from '../screens/OracaoScreen';
 import { PessoaScreen } from '../screens/PessoaScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SobreScreen } from '../screens/SobreScreen';
+import { AnnotationsScreen } from '../screens/AnnotationsScreen';
+import { AdminScreen } from '../screens/AdminScreen';
+import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 import { useAppearance } from '../context/AppearanceContext';
 import { Pessoa } from '../types';
@@ -41,6 +47,9 @@ type AppRoute =
   | 'Sobre'
   | 'Perfil'
   | 'Configuracoes'
+  | 'HistoricoOracoes'
+  | 'Anotacoes'
+  | 'Admin'
   | 'Pessoa';
 type TabRoute = 'Inicio' | 'Ministerios' | 'Oracao' | 'Biblia' | 'Eventos';
 const routeIcons: Record<AppRoute, LucideIcon> = {
@@ -54,6 +63,9 @@ const routeIcons: Record<AppRoute, LucideIcon> = {
   Perfil: UserRound,
   Configuracoes: Settings,
   Pessoa: UserRound,
+  HistoricoOracoes: History,
+  Anotacoes: NotebookPen,
+  Admin: ShieldCheck,
 };
 const tabs: Array<{ key: TabRoute; label: string }> = [
   { key: 'Inicio', label: 'Início' },
@@ -86,9 +98,13 @@ const titles: Record<AppRoute, string> = {
   Perfil: 'Perfil',
   Configuracoes: 'Configurações',
   Pessoa: 'Pessoa',
+  HistoricoOracoes: 'Orações em que orei',
+  Anotacoes: 'Minhas anotações',
+  Admin: 'Administração',
 };
 
 export const AppNavigation = () => {
+  const { user } = useAuth();
   const { themePreference } = useAppearance();
   const isDark = themePreference === 'dark';
   const chromeBackground = isDark ? '#000000' : '#FFFFFF';
@@ -115,6 +131,12 @@ export const AppNavigation = () => {
         return <MinisteriosScreen />;
       case 'Oracao':
         return <OracaoScreen />;
+      case 'HistoricoOracoes':
+        return <OracaoScreen initialTab="history" />;
+      case 'Anotacoes':
+        return <AnnotationsScreen />;
+      case 'Admin':
+        return user?.role === 'admin' ? <AdminScreen /> : <ProfileScreen />;
       case 'Biblia':
         return <BibliaScreen onReadingModeChange={setBibleReadingMode} />;
       case 'Eventos':
@@ -164,7 +186,7 @@ export const AppNavigation = () => {
       ) : null}
       <View style={styles.content}>{renderScreen()}</View>
 
-      <SafeAreaView
+      {!(currentRoute === 'Biblia' && bibleReadingMode) ? <SafeAreaView
         edges={['bottom']}
         style={[styles.bottomSafe, { backgroundColor: chromeBackground }]}
       >
@@ -209,13 +231,15 @@ export const AppNavigation = () => {
             );
           })}
         </View>
-      </SafeAreaView>
+      </SafeAreaView> : null}
 
       {sidebarOpen ? (
         <Sidebar
           currentRoute={currentRoute}
           onClose={() => setSidebarOpen(false)}
           onNavigate={navigate}
+          isAuthenticated={Boolean(user)}
+          isAdmin={user?.role === 'admin'}
         />
       ) : null}
     </View>
@@ -226,10 +250,14 @@ const Sidebar = ({
   currentRoute,
   onClose,
   onNavigate,
+  isAuthenticated,
+  isAdmin,
 }: {
   currentRoute: AppRoute;
   onClose: () => void;
   onNavigate: (route: AppRoute) => void;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
 }) => (
   <View style={styles.sidebarLayer}>
     <Pressable
@@ -253,7 +281,13 @@ const Sidebar = ({
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {menuItems.map(item => {
+        {[...menuItems,
+          ...(isAuthenticated ? [
+            { key: 'HistoricoOracoes' as AppRoute, label: 'Orações em que orei' },
+            { key: 'Anotacoes' as AppRoute, label: 'Minhas anotações' },
+          ] : []),
+          ...(isAdmin ? [{ key: 'Admin' as AppRoute, label: 'Administração' }] : []),
+        ].map(item => {
           const active = currentRoute === item.key;
           return (
             <Pressable

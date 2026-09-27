@@ -1,4 +1,4 @@
-import { Search, ChevronRight } from 'lucide-react-native';
+import { Search, ChevronRight, ChevronLeft, Highlighter, Underline, NotebookPen, X, Eraser } from 'lucide-react-native';
 import { Icon } from '../components/Icon';
 import React, {
   useCallback,
@@ -14,6 +14,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   View,
 } from 'react-native';
 import {
@@ -26,11 +27,16 @@ import {
   getBooks,
   getChapters,
   getVerses,
+  getHighlights,
+  putHighlight,
+  deleteHighlight,
   searchBible,
 } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { AnnotationEditor } from './AnnotationsScreen';
 import { colors } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
-import { BibleVersion, Book, Chapter, Verse } from '../types';
+import { BibleHighlight, BibleReference, BibleVersion, Book, Chapter, HighlightColor, HighlightStyle, Verse } from '../types';
 
 type Step = 'books' | 'chapters' | 'verses';
 type TestamentFilter = 'all' | 1 | 2;
@@ -120,6 +126,7 @@ export const BibliaScreen = ({
 }: {
   onReadingModeChange?: (active: boolean) => void;
 }) => {
+  const { user } = useAuth();
   const [testament, setTestament] = useState<TestamentFilter>('all');
   const [books, setBooks] = useState<Book[]>([]);
   const [versions, setVersions] = useState<BibleVersion[]>([]);
@@ -136,6 +143,11 @@ export const BibliaScreen = ({
   const [searching, setSearching] = useState(false);
   const [step, setStep] = useState<Step>('books');
   const [error, setError] = useState('');
+  const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set());
+  const [highlights, setHighlights] = useState<BibleHighlight[]>([]);
+  const [highlightStyle, setHighlightStyle] = useState<HighlightStyle | null>(null);
+  const [savingHighlight, setSavingHighlight] = useState(false);
+  const [annotationOpen, setAnnotationOpen] = useState(false);
   const selectedBookIdRef = useRef<number | null>(null);
   const verseScrollRef = useRef<ScrollView>(null);
 
@@ -212,6 +224,23 @@ export const BibliaScreen = ({
       verseScrollRef.current?.scrollTo({ y: 0, animated: false });
     });
   }, [selectedChapter, step]);
+
+  useEffect(() => {
+    setSelectedVerses(new Set());
+    setHighlightStyle(null);
+  }, [selectedBook?.id, selectedChapter, selectedVersion]);
+
+  useEffect(() => {
+    if (!user || step !== 'verses' || !selectedBook || !selectedChapter) {
+      setHighlights([]);
+      return;
+    }
+    let active = true;
+    getHighlights(selectedVersion, selectedBook.id, selectedChapter)
+      .then(items => { if (active) setHighlights(items); })
+      .catch(loadError => console.error('Erro ao carregar destaques:', loadError));
+    return () => { active = false; };
+  }, [selectedBook, selectedChapter, selectedVersion, step, user]);
 
   const handleSelectBook = async (book: Book) => {
     setSelectedBook(book);
@@ -515,6 +544,66 @@ export const BibliaScreen = ({
     }
   };
 
+  const goToBooks = () => {
+    setSelectedVerses(new Set());
+    setStep('books');
+    setSelectedBook(null);
+    selectedBookIdRef.current = null;
+    setSelectedChapter(null);
+    setChapters([]);
+    setBookVerses([]);
+    setVerses([]);
+  };
+
+  const toggleVerse = (verseNumber: number, startSelection = false) => {
+    if (!user) {
+      setError('Entre no perfil para destacar ou anotar versículos.');
+      return;
+    }
+    if (!startSelection && !selectedVerses.size) return;
+    setSelectedVerses(current => {
+      const next = new Set(current);
+      next.has(verseNumber) ? next.delete(verseNumber) : next.add(verseNumber);
+      return next;
+    });
+  };
+
+  const selectedReferences: BibleReference[] = displayedVerses
+    .filter(verse => selectedVerses.has(verse.verse))
+    .map(verse => ({ version: selectedVersion, book: selectedBook?.id ?? verse.book ?? 0, chapter: selectedChapter ?? verse.chapter ?? 0, verse: verse.verse }));
+
+  const applyHighlight = async (color: HighlightColor) => {
+    if (!selectedReferences.length || !highlightStyle || savingHighlight) return;
+    const previous = highlights;
+    const optimistic = selectedReferences.map((reference, index) => ({ ...reference, id: `pending-${index}`, style: highlightStyle, color }));
+    setHighlights(current => [...current.filter(item => !selectedVerses.has(item.verse) || item.style !== highlightStyle), ...optimistic]);
+    setSavingHighlight(true);
+    try {
+      const saved = await Promise.all(selectedReferences.map(reference => putHighlight({ ...reference, style: highlightStyle, color })));
+      setHighlights(current => [...current.filter(item => !optimistic.some(pending => pending.id === item.id)), ...saved]);
+      setSelectedVerses(new Set());
+      setHighlightStyle(null);
+    } catch {
+      setHighlights(previous);
+      setError('Não foi possível salvar o destaque.');
+    } finally { setSavingHighlight(false); }
+  };
+
+  const removeHighlights = async () => {
+    const targets = highlights.filter(item => selectedVerses.has(item.verse));
+    if (!targets.length) { setSelectedVerses(new Set()); return; }
+    const previous = highlights;
+    setHighlights(current => current.filter(item => !targets.some(target => target.id === item.id)));
+    setSavingHighlight(true);
+    try {
+      await Promise.all(targets.map(item => deleteHighlight(item.id)));
+      setSelectedVerses(new Set());
+    } catch {
+      setHighlights(previous);
+      setError('Não foi possível remover os destaques.');
+    } finally { setSavingHighlight(false); }
+  };
+
   const getVerseBookName = (verse: Verse) => {
     if (verse.book_name) {
       return verse.book_name;
@@ -762,9 +851,7 @@ export const BibliaScreen = ({
           {!loading && step === 'verses' ? (
             <View style={styles.versePane} {...panResponder.panHandlers}>
               <View style={styles.chapterNav}>
-                <Text style={styles.chapterNavTitle}>
-                  {selectedBook?.name} {selectedChapter}
-                </Text>
+                <Text style={styles.readingHint}>Pressione um versículo para selecionar</Text>
               </View>
 
               <ScrollView
@@ -778,6 +865,10 @@ export const BibliaScreen = ({
                       key={`${verse.book ?? selectedBook?.id ?? 'book'}-${verse.chapter ?? selectedChapter ?? 'chapter'}-${verse.verse ?? index}-${index}`}
                       verse={verse}
                       fallbackNumber={index + 1}
+                      selected={selectedVerses.has(verse.verse)}
+                      highlights={highlights.filter(item => item.verse === verse.verse)}
+                      onPress={() => toggleVerse(verse.verse)}
+                      onLongPress={() => toggleVerse(verse.verse, true)}
                     />
                   ))
                 ) : (
@@ -789,12 +880,32 @@ export const BibliaScreen = ({
                   />
                 )}
               </ScrollView>
+              <View style={styles.readingBar}>
+                {selectedVerses.size ? (
+                  <>
+                    <Text style={styles.selectionCount}>{selectedVerses.size}</Text>
+                    <ToolbarButton icon={Highlighter} label="Destacar fundo" active={highlightStyle === 'background'} onPress={() => setHighlightStyle('background')} />
+                    <ToolbarButton icon={Underline} label="Sublinhar" active={highlightStyle === 'underline'} onPress={() => setHighlightStyle('underline')} />
+                    <ToolbarButton icon={NotebookPen} label="Criar anotação" onPress={() => setAnnotationOpen(true)} />
+                    <ToolbarButton icon={Eraser} label="Remover destaque" onPress={removeHighlights} />
+                    <ToolbarButton icon={X} label="Cancelar seleção" onPress={() => { setSelectedVerses(new Set()); setHighlightStyle(null); }} />
+                  </>
+                ) : (
+                  <>
+                    <ToolbarButton icon={ChevronLeft} label="Capítulo anterior" disabled={!previousChapter || loading} onPress={() => navigateChapter(-1)} />
+                    <Pressable accessibilityRole="button" accessibilityLabel="Voltar para a lista de livros" style={styles.bookChapterButton} onPress={goToBooks}><Text style={styles.bookChapterText} numberOfLines={1}>{selectedBook?.name} · {selectedChapter}</Text></Pressable>
+                    <ToolbarButton icon={ChevronRight} label="Próximo capítulo" disabled={!nextChapter || loading} onPress={() => navigateChapter(1)} />
+                  </>
+                )}
+              </View>
+              {highlightStyle && selectedVerses.size ? <ColorPalette onSelect={applyHighlight} disabled={savingHighlight} /> : null}
+              <AnnotationEditor visible={annotationOpen} references={selectedReferences} onClose={() => setAnnotationOpen(false)} onSaved={() => { setAnnotationOpen(false); setSelectedVerses(new Set()); }} />
             </View>
           ) : null}
         </>
       )}
 
-      {step !== 'books' && !searchResults.length ? (
+      {step !== 'books' && step !== 'verses' && !searchResults.length ? (
         <TouchableOpacity style={styles.backButton} onPress={goBack}>
           <Text style={styles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
@@ -857,21 +968,41 @@ const VerseItem = ({
   verse,
   fallbackNumber,
   reference,
+  selected = false,
+  highlights = [],
+  onPress,
+  onLongPress,
 }: {
   verse: Verse;
   fallbackNumber: number;
   reference?: string;
+  selected?: boolean;
+  highlights?: BibleHighlight[];
+  onPress?: () => void;
+  onLongPress?: () => void;
 }) => (
-  <View style={styles.verseContainer}>
+  <Pressable delayLongPress={500} onPress={onPress} onLongPress={onLongPress} style={[styles.verseContainer, selected && styles.verseSelected]}>
     <Text style={styles.verseNumber}>{verse.verse || fallbackNumber}</Text>
     <View style={styles.verseTextBlock}>
       {reference ? (
         <Text style={styles.verseReference}>{reference}</Text>
       ) : null}
-      <Text style={styles.verseText}>{verse.text || 'Texto indisponivel'}</Text>
+      <Text style={[styles.verseText, highlightTextStyle(highlights)]}>{verse.text || 'Texto indisponivel'}</Text>
     </View>
-  </View>
+  </Pressable>
 );
+
+const highlightColors: Record<HighlightColor, string> = { yellow: '#F4D35E', green: '#8FCB9B', blue: '#83B9E6', pink: '#E8A0BF', purple: '#B8A1D9' };
+const highlightTextStyle = (items: BibleHighlight[]) => {
+  const background = items.find(item => item.style === 'background');
+  const underline = items.find(item => item.style === 'underline');
+  return {
+    ...(background ? { backgroundColor: highlightColors[background.color], color: '#111111' } : {}),
+    ...(underline ? { textDecorationLine: 'underline' as const, textDecorationColor: highlightColors[underline.color], textDecorationStyle: 'solid' as const } : {}),
+  };
+};
+const ToolbarButton = ({ icon, label, active, disabled, onPress }: { icon: typeof Search; label: string; active?: boolean; disabled?: boolean; onPress: () => void }) => <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} style={[styles.toolbarButton, active && styles.toolbarButtonActive, disabled && styles.toolbarButtonDisabled]} onPress={onPress}><Icon as={icon} size={20} /></Pressable>;
+const ColorPalette = ({ onSelect, disabled }: { onSelect: (color: HighlightColor) => void; disabled: boolean }) => <View style={styles.palette}>{(Object.keys(highlightColors) as HighlightColor[]).map(color => <Pressable key={color} accessibilityLabel={`Cor ${color}`} disabled={disabled} style={[styles.colorDot, { backgroundColor: highlightColors[color] }]} onPress={() => onSelect(color)} />)}</View>;
 
 const EmptyState = ({
   text,
@@ -1147,6 +1278,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.page,
     paddingBottom: 10,
   },
+  readingHint: {
+    color: colors.textSecondary,
+    fontSize: typography.caption,
+  },
   chapterNavTitle: {
     color: colors.textPrimary,
     fontSize: typography.subtitle,
@@ -1154,7 +1289,7 @@ const styles = StyleSheet.create({
   },
   verseContent: {
     paddingHorizontal: spacing.page,
-    paddingBottom: 80,
+    paddingBottom: 24,
   },
   verseContainer: {
     flexDirection: 'row',
@@ -1162,6 +1297,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     marginBottom: 0,
     backgroundColor: colors.white,
+  },
+  verseSelected: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.sm,
   },
   verseNumber: {
     width: 30,
@@ -1183,6 +1322,64 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: typography.subtitle,
     lineHeight: 24,
+  },
+  readingBar: {
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 7,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  toolbarButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+  },
+  toolbarButtonActive: { backgroundColor: colors.surfaceMuted },
+  toolbarButtonDisabled: { opacity: 0.3 },
+  bookChapterButton: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  bookChapterText: {
+    color: colors.textPrimary,
+    fontSize: typography.subtitle,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  selectionCount: {
+    minWidth: 32,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  palette: {
+    position: 'absolute',
+    right: spacing.page,
+    bottom: 68,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 10,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  colorDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#777777',
   },
   backButton: {
     position: 'absolute',

@@ -17,6 +17,11 @@ jest.mock('expo-network', () => ({
   })),
 }));
 
+jest.mock('expo-image-picker', () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  launchImageLibraryAsync: jest.fn(async () => ({ canceled: true, assets: [] })),
+}));
+
 jest.mock('@react-native-google-signin/google-signin', () => ({
   GoogleSignin: {
     configure: jest.fn(),
@@ -49,9 +54,11 @@ jest.mock('lucide-react-native', () => {
 jest.mock('axios', () => {
   const api = {
     defaults: { headers: { common: {} } },
+    interceptors: { response: { use: jest.fn() } },
     get: jest.fn(async () => ({ data: [] })),
     post: jest.fn(async () => ({ data: {} })),
     put: jest.fn(async () => ({ data: {} })),
+    patch: jest.fn(async () => ({ data: {} })),
     delete: jest.fn(async () => ({ data: {} })),
   };
 

@@ -1,5 +1,12 @@
 import axios, { AxiosResponse } from 'axios';
 import {
+  AdminContentKind,
+  AdminUploadFile,
+  AdminUser,
+  Annotation,
+  AnnotationPayload,
+  BibleHighlight,
+  BibleHighlightPayload,
   Book,
   BibleVersion,
   Chapter,
@@ -17,6 +24,8 @@ import {
   Ministerio,
   Noticia,
   Oracao,
+  PaginatedResult,
+  Pagination,
   Pessoa,
   PlanoEstudo,
   PlanoEstudoDetalhe,
@@ -48,6 +57,21 @@ const api = axios.create({
   },
 });
 
+let unauthorizedHandler: (() => void | Promise<void>) | null = null;
+export const setApiUnauthorizedHandler = (handler: (() => void | Promise<void>) | null) => {
+  unauthorizedHandler = handler;
+};
+
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    if (error?.response?.status === 401 && unauthorizedHandler) {
+      await unauthorizedHandler();
+    }
+    return Promise.reject(error);
+  },
+);
+
 export const setApiAccessToken = (accessToken: string | null) => {
   if (accessToken) {
     api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
@@ -76,6 +100,24 @@ export const extractData = <T>(response: AxiosResponse | { data?: unknown }): T 
 };
 
 const normalizeArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+
+const normalizePagination = (value: unknown, page = 1, limit = 20, itemCount = 0): Pagination => {
+  const data = (value ?? {}) as Record<string, unknown>;
+  const total = Number(data.total ?? data.totalItems ?? data.total_items ?? itemCount);
+  const normalizedLimit = Number(data.limit ?? data.perPage ?? data.per_page ?? limit);
+  return {
+    page: Number(data.page ?? data.currentPage ?? data.current_page ?? page),
+    limit: normalizedLimit,
+    total,
+    totalPages: Number(data.totalPages ?? data.total_pages ?? Math.max(1, Math.ceil(total / normalizedLimit))),
+  };
+};
+
+const extractPaginated = <T>(response: AxiosResponse, page = 1, limit = 20): PaginatedResult<T> => {
+  const items = normalizeArray<T>(extractData<unknown>(response));
+  const body = response.data as { pagination?: unknown } | undefined;
+  return { items, pagination: normalizePagination(body?.pagination, page, limit, items.length) };
+};
 
 const getStudyPlanKey = (plano: PlanoEstudo) => plano.slug || plano.plano_estudo_id;
 
@@ -336,6 +378,68 @@ export const marcarOracaoComoOrada = async (id: string): Promise<OracaoOradaResp
   }
 
   return data;
+};
+
+export const desmarcarOracaoComoOrada = async (id: string): Promise<OracaoOradaResponse> => {
+  const response = await api.delete(`/api/oracoes/${encodeURIComponent(id)}/orado`);
+  const data = extractData<Partial<OracaoOradaResponse>>(response);
+  return { ...data, orado: false };
+};
+
+export const getMinhasOracoesOradas = async (page = 1, limit = 20): Promise<PaginatedResult<Oracao>> => {
+  const response = await api.get('/api/usuarios/me/oracoes-oradas', { params: { page, limit: Math.min(limit, 100) } });
+  return extractPaginated<Oracao>(response, page, limit);
+};
+
+export const getAdminOracoes = async (page = 1, limit = 20): Promise<PaginatedResult<Oracao>> => {
+  const response = await api.get('/api/admin/oracoes', { params: { page, limit: Math.min(limit, 100) } });
+  return extractPaginated<Oracao>(response, page, limit);
+};
+
+export const getAdminUsuarioOracoes = async (id: string, page = 1, limit = 20): Promise<PaginatedResult<Oracao>> => {
+  const response = await api.get(`/api/admin/usuarios/${encodeURIComponent(id)}/oracoes`, { params: { page, limit: Math.min(limit, 100) } });
+  return extractPaginated<Oracao>(response, page, limit);
+};
+
+export const getAnnotations = async (page = 1, limit = 20): Promise<PaginatedResult<Annotation>> => {
+  const response = await api.get('/api/usuarios/me/anotacoes', { params: { page, limit: Math.min(limit, 100) } });
+  return extractPaginated<Annotation>(response, page, limit);
+};
+export const getAnnotation = async (id: string): Promise<Annotation> => extractData<Annotation>(await api.get(`/api/usuarios/me/anotacoes/${encodeURIComponent(id)}`));
+export const createAnnotation = async (payload: AnnotationPayload): Promise<Annotation> => extractData<Annotation>(await api.post('/api/usuarios/me/anotacoes', payload));
+export const updateAnnotation = async (id: string, payload: AnnotationPayload): Promise<Annotation> => extractData<Annotation>(await api.put(`/api/usuarios/me/anotacoes/${encodeURIComponent(id)}`, payload));
+export const deleteAnnotation = async (id: string): Promise<void> => { await api.delete(`/api/usuarios/me/anotacoes/${encodeURIComponent(id)}`); };
+
+export const getHighlights = async (version: string, book: number, chapter: number): Promise<BibleHighlight[]> => {
+  const response = await api.get('/api/usuarios/me/destaques', { params: { version, book, chapter } });
+  return normalizeArray<BibleHighlight>(extractData<unknown>(response));
+};
+export const putHighlight = async (payload: BibleHighlightPayload): Promise<BibleHighlight> => extractData<BibleHighlight>(await api.put('/api/usuarios/me/destaques', payload));
+export const deleteHighlight = async (id: string): Promise<void> => { await api.delete(`/api/usuarios/me/destaques/${encodeURIComponent(id)}`); };
+
+export const getAdminUsers = async (page = 1, limit = 20, search = ''): Promise<PaginatedResult<AdminUser>> => {
+  const response = await api.get('/api/admin/usuarios', { params: { page, limit: Math.min(limit, 100), ...(search.trim() ? { search: search.trim() } : {}) } });
+  return extractPaginated<AdminUser>(response, page, limit);
+};
+export const getAdminUser = async (id: string): Promise<AdminUser> => extractData<AdminUser>(await api.get(`/api/admin/usuarios/${encodeURIComponent(id)}`));
+export const updateAdminUserRole = async (id: string, role: AdminUser['role']): Promise<AdminUser> => extractData<AdminUser>(await api.patch(`/api/admin/usuarios/${encodeURIComponent(id)}/role`, { role }));
+
+export const getAdminContent = async <T>(kind: AdminContentKind, page = 1, limit = 20): Promise<PaginatedResult<T>> => {
+  const response = await api.get(`/api/${kind}`, { params: { page, limit: Math.min(limit, 100) } });
+  return extractPaginated<T>(response, page, limit);
+};
+export const createAdminContent = async <T>(kind: AdminContentKind, payload: Record<string, unknown>): Promise<T> => extractData<T>(await api.post(`/api/${kind}`, payload));
+export const updateAdminContent = async <T>(kind: AdminContentKind, id: string, payload: Record<string, unknown>): Promise<T> => extractData<T>(await api.put(`/api/${kind}/${encodeURIComponent(id)}`, payload));
+export const deleteAdminContent = async (kind: AdminContentKind, id: string): Promise<void> => { await api.delete(`/api/${kind}/${encodeURIComponent(id)}`); };
+
+export const uploadAdminMedia = async (file: AdminUploadFile, context: AdminContentKind): Promise<string> => {
+  const form = new FormData();
+  form.append('context', context);
+  form.append('file', file as unknown as Blob);
+  const response = await api.post('/api/admin/uploads', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  const result = extractData<{ url?: string }>(response);
+  if (!result?.url) throw new Error('A API nao retornou a URL da imagem enviada.');
+  return result.url;
 };
 
 export const getBibleVersions = async (): Promise<BibleVersion[]> => {

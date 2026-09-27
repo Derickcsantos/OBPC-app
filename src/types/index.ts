@@ -191,7 +191,75 @@ export interface Oracao {
   status?: string;
   orado?: boolean;
   orado_por_mim?: boolean;
+  total_oracoes?: number;
 }
+
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  pagination: Pagination;
+}
+
+export interface BibleReference {
+  version: string;
+  book: number;
+  chapter: number;
+  verse: number;
+}
+
+export interface Annotation {
+  id: string;
+  titulo?: string | null;
+  conteudo: string;
+  versiculos: BibleReference[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AnnotationPayload {
+  titulo?: string | null;
+  conteudo: string;
+  versiculos: BibleReference[];
+}
+
+export type HighlightStyle = 'background' | 'underline';
+export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink' | 'purple';
+
+export interface BibleHighlight extends BibleReference {
+  id: string;
+  style: HighlightStyle;
+  color: HighlightColor;
+}
+
+export type BibleHighlightPayload = Omit<BibleHighlight, 'id'>;
+
+export interface AdminUser {
+  usuario_id: string;
+  nome_usuario: string;
+  email_usuario: string;
+  avatar_url?: string | null;
+  role: 'user' | 'admin';
+  created_at?: string;
+}
+
+export interface AdminUploadFile {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+export type AdminContentKind =
+  | 'ministerios'
+  | 'eventos'
+  | 'noticias'
+  | 'mensagens'
+  | 'louvores';
 
 export interface BibleVersion {
   id: number | string;

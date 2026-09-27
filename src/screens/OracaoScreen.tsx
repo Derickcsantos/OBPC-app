@@ -1,4 +1,4 @@
-import { Plus, ChevronLeft, Check } from 'lucide-react-native';
+import { Plus, ChevronLeft, Check, Heart } from 'lucide-react-native';
 import { Icon } from '../components/Icon';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -17,7 +17,13 @@ import {
   AppText as Text,
   AppTextInput as TextInput,
 } from '../components/AppText';
-import { getOracoes, marcarOracaoComoOrada, postOracao } from '../services/api';
+import {
+  desmarcarOracaoComoOrada,
+  getMinhasOracoesOradas,
+  getOracoes,
+  marcarOracaoComoOrada,
+  postOracao,
+} from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
@@ -25,8 +31,9 @@ import { Oracao } from '../types';
 import axios from 'axios';
 
 type OracaoView = 'list' | 'detail' | 'create';
+type PrayerTab = 'all' | 'history';
 
-export const OracaoScreen = () => {
+export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab }) => {
   const { user } = useAuth();
   const [view, setView] = useState<OracaoView>('list');
   const [selectedOracao, setSelectedOracao] = useState<Oracao | null>(null);
@@ -35,15 +42,25 @@ export const OracaoScreen = () => {
   const [mostrarGrupo, setMostrarGrupo] = useState(true);
   const [aceitaLigacao, setAceitaLigacao] = useState(false);
   const [oracoes, setOracoes] = useState<Oracao[]>([]);
+  const [historico, setHistorico] = useState<Oracao[]>([]);
+  const [activeTab, setActiveTab] = useState<PrayerTab>(initialTab);
   const [submitting, setSubmitting] = useState(false);
   const [loadingList, setLoadingList] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [orandoIds, setOrandoIds] = useState<Set<string>>(new Set());
-  const [oradosIds, setOradosIds] = useState<Set<string>>(new Set());
 
   const loadOracoes = useCallback(async () => {
     try {
-      setOracoes(await getOracoes());
+      const [pedidos, oradas] = await Promise.all([
+        getOracoes(),
+        user ? getMinhasOracoesOradas(1, 100) : Promise.resolve({ items: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 1 } }),
+      ]);
+      const prayedIds = new Set(oradas.items.map(item => item.oracao_id).filter(Boolean));
+      setOracoes(pedidos.map(item => ({
+        ...item,
+        orado_por_mim: Boolean(item.orado_por_mim || item.orado || (item.oracao_id && prayedIds.has(item.oracao_id))),
+      })));
+      setHistorico(oradas.items.map(item => ({ ...item, orado_por_mim: true })));
     } catch (requestError) {
       console.error('Erro ao carregar pedidos de oracao:', requestError);
       Alert.alert('Erro', 'Nao foi possivel carregar os pedidos de oracao.');
@@ -51,7 +68,7 @@ export const OracaoScreen = () => {
       setLoadingList(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     loadOracoes();
@@ -125,14 +142,21 @@ export const OracaoScreen = () => {
       Alert.alert('Entre na sua conta', 'Faca login no perfil para marcar que orou.');
       return;
     }
-    if (!id || id.startsWith('offline-') || orandoIds.has(id) || oradosIds.has(id) || oracao.orado_por_mim || oracao.orado) return;
+    if (!id || id.startsWith('offline-') || orandoIds.has(id)) return;
 
+    const marked = Boolean(oracao.orado_por_mim || oracao.orado);
+    const applyState = (value: boolean) => {
+      setOracoes(current => current.map(item => item.oracao_id === id ? { ...item, orado: value, orado_por_mim: value } : item));
+      setSelectedOracao(current => current?.oracao_id === id ? { ...current, orado: value, orado_por_mim: value } : current);
+      setHistorico(current => value
+        ? current.some(item => item.oracao_id === id) ? current : [{ ...oracao, orado: true, orado_por_mim: true }, ...current]
+        : current.filter(item => item.oracao_id !== id));
+    };
     setOrandoIds(current => new Set(current).add(id));
+    applyState(!marked);
     try {
-      await marcarOracaoComoOrada(id);
-      setOradosIds(current => new Set(current).add(id));
-      setOracoes(current => current.map(item => item.oracao_id === id ? { ...item, orado_por_mim: true } : item));
-      setSelectedOracao(current => current?.oracao_id === id ? { ...current, orado_por_mim: true } : current);
+      if (marked) await desmarcarOracaoComoOrada(id);
+      else await marcarOracaoComoOrada(id);
     } catch (error) {
       console.error('Erro ao marcar pedido como orado:', error);
       const status = axios.isAxiosError(error) ? error.response?.status : undefined;
@@ -141,7 +165,8 @@ export const OracaoScreen = () => {
         : axios.isAxiosError(error) && typeof error.response?.data?.message === 'string'
           ? error.response.data.message
           : 'Verifique sua conexao e tente novamente.';
-      Alert.alert('Nao foi possivel marcar', message);
+      applyState(marked);
+      Alert.alert('Nao foi possivel atualizar', message);
     } finally {
       setOrandoIds(current => {
         const next = new Set(current);
@@ -184,7 +209,7 @@ export const OracaoScreen = () => {
               }
             />
           </View>
-          <OradoButton oracao={selectedOracao} loading={Boolean(selectedOracao.oracao_id && orandoIds.has(selectedOracao.oracao_id))} marked={Boolean(selectedOracao.orado || selectedOracao.orado_por_mim || (selectedOracao.oracao_id && oradosIds.has(selectedOracao.oracao_id)))} onPress={() => handleOrado(selectedOracao)} />
+          <OradoButton oracao={selectedOracao} loading={Boolean(selectedOracao.oracao_id && orandoIds.has(selectedOracao.oracao_id))} marked={Boolean(selectedOracao.orado || selectedOracao.orado_por_mim)} onPress={() => handleOrado(selectedOracao)} />
         </View>
       </ScrollView>
     );
@@ -278,8 +303,19 @@ export const OracaoScreen = () => {
           ) : null}
         </View>
 
-        {oracoes.length ? (
-          oracoes.map((oracao, index) => (
+        {user ? (
+          <View style={styles.tabs}>
+            <TouchableOpacity style={[styles.tab, activeTab === 'all' && styles.tabActive]} onPress={() => setActiveTab('all')}>
+              <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>Pedidos</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.tab, activeTab === 'history' && styles.tabActive]} onPress={() => setActiveTab('history')}>
+              <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>Orações em que orei</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {(activeTab === 'history' ? historico : oracoes).length ? (
+          (activeTab === 'history' ? historico : oracoes).map((oracao, index) => (
             <View
               key={oracao.oracao_id || `oracao-${index}`}
               style={styles.prayerCard}
@@ -298,12 +334,12 @@ export const OracaoScreen = () => {
                 </Text>
                 <Text style={styles.openText}>Abrir pedido</Text>
               </TouchableOpacity>
-              <OradoButton oracao={oracao} loading={Boolean(oracao.oracao_id && orandoIds.has(oracao.oracao_id))} marked={Boolean(oracao.orado || oracao.orado_por_mim || (oracao.oracao_id && oradosIds.has(oracao.oracao_id)))} onPress={() => handleOrado(oracao)} compact />
+              <OradoButton oracao={oracao} loading={Boolean(oracao.oracao_id && orandoIds.has(oracao.oracao_id))} marked={Boolean(oracao.orado || oracao.orado_por_mim)} onPress={() => handleOrado(oracao)} compact />
             </View>
           ))
         ) : (
           <Text style={styles.emptyText}>
-            Nenhum pedido de oracao no momento.
+            {activeTab === 'history' ? 'Você ainda não marcou nenhum pedido como orado.' : 'Nenhum pedido de oracao no momento.'}
           </Text>
         )}
       </ScrollView>
@@ -342,7 +378,7 @@ const InfoPill = ({ label }: { label: string }) => (
 );
 
 const OradoButton = ({ oracao, loading, marked, onPress, compact = false }: { oracao: Oracao; loading: boolean; marked: boolean; onPress: () => void; compact?: boolean }) => {
-  const disabled = loading || marked || !oracao.oracao_id || oracao.oracao_id.startsWith('offline-');
+  const disabled = loading || !oracao.oracao_id || oracao.oracao_id.startsWith('offline-');
   return (
     <TouchableOpacity
       accessibilityRole="button"
@@ -351,8 +387,8 @@ const OradoButton = ({ oracao, loading, marked, onPress, compact = false }: { or
       disabled={disabled}
       onPress={onPress}
     >
-      {loading ? <ActivityIndicator size="small" color={colors.primary} /> : <Icon as={Check} size={17} color={colors.primary} />}
-      <Text style={styles.prayedButtonText}>{marked ? 'Voce orou' : 'Marcar como orado'}</Text>
+      {loading ? <ActivityIndicator size="small" color={colors.primary} /> : <Icon as={marked ? Check : Heart} size={17} color={colors.primary} />}
+      <Text style={styles.prayedButtonText}>{marked ? 'Você orou · desfazer' : 'Ainda não orou'}</Text>
     </TouchableOpacity>
   );
 };
@@ -405,6 +441,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 4,
   },
+  tabs: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  tab: {
+    minHeight: 44,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  tabActive: { backgroundColor: colors.primary },
+  tabText: { color: colors.textSecondary, fontSize: typography.caption, fontWeight: '600', textAlign: 'center' },
+  tabTextActive: { color: colors.white },
   prayerCard: {
     padding: spacing.md,
     marginBottom: 12,
