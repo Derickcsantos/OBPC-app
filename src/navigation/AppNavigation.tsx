@@ -15,12 +15,12 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { Icon } from '../components/Icon';
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { BackHandler, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText as Text } from '../components/AppText';
 import { Header } from '../components/Header';
-import { BibliaScreen } from '../screens/BibliaScreen';
+import { BibliaScreen, BibliaScreenHandle } from '../screens/BibliaScreen';
 import { ConfiguracoesScreen } from '../screens/ConfiguracoesScreen';
 import { EventosScreen } from '../screens/EventosScreen';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -114,14 +114,48 @@ export const AppNavigation = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<Pessoa | null>(null);
   const [bibleReadingMode, setBibleReadingMode] = useState(false);
+  const navigationHistory = useRef<AppRoute[]>([]);
+  const bibleRef = useRef<BibliaScreenHandle>(null);
 
-  const navigate = (route: AppRoute) => {
+  const navigate = useCallback((route: AppRoute) => {
+    if (route === currentRoute) {
+      setSidebarOpen(false);
+      return;
+    }
+    navigationHistory.current.push(currentRoute);
     setCurrentRoute(route);
     setSidebarOpen(false);
     if (route !== 'Biblia') {
       setBibleReadingMode(false);
     }
-  };
+  }, [currentRoute]);
+
+  const goBack = useCallback(() => {
+    if (sidebarOpen) {
+      setSidebarOpen(false);
+      return true;
+    }
+    if (currentRoute === 'Biblia' && bibleRef.current?.handleBack()) {
+      return true;
+    }
+    const previousRoute = navigationHistory.current.pop();
+    if (previousRoute) {
+      setCurrentRoute(previousRoute);
+      setBibleReadingMode(false);
+      return true;
+    }
+    if (currentRoute !== 'Inicio') {
+      setCurrentRoute('Inicio');
+      setBibleReadingMode(false);
+      return true;
+    }
+    return false;
+  }, [currentRoute, sidebarOpen]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', goBack);
+    return () => subscription.remove();
+  }, [goBack]);
 
   const renderScreen = () => {
     switch (currentRoute) {
@@ -138,7 +172,7 @@ export const AppNavigation = () => {
       case 'Admin':
         return user?.role === 'admin' ? <AdminScreen /> : <ProfileScreen />;
       case 'Biblia':
-        return <BibliaScreen onReadingModeChange={setBibleReadingMode} />;
+        return <BibliaScreen ref={bibleRef} onReadingModeChange={setBibleReadingMode} />;
       case 'Eventos':
         return <EventosScreen />;
       case 'Mensagens':
@@ -160,7 +194,7 @@ export const AppNavigation = () => {
         return selectedPerson ? (
           <PessoaScreen
             pessoa={selectedPerson}
-            onBack={() => navigate('Sobre')}
+            onBack={goBack}
           />
         ) : (
           <SobreScreen

@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon';
 import React, {
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -21,6 +22,7 @@ import {
   AppText as Text,
   AppTextInput as TextInput,
 } from '../components/AppText';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   getBibleVersions,
   getBookVerses,
@@ -121,12 +123,18 @@ const chaptersFromVerses = (
   }));
 };
 
-export const BibliaScreen = ({
-  onReadingModeChange,
-}: {
+export interface BibliaScreenHandle {
+  handleBack: () => boolean;
+}
+
+export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
   onReadingModeChange?: (active: boolean) => void;
-}) => {
+}>(({
+  onReadingModeChange,
+}, ref) => {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const bottomSafeSpacing = Math.max(insets.bottom, 12);
   const [testament, setTestament] = useState<TestamentFilter>('all');
   const [books, setBooks] = useState<Book[]>([]);
   const [versions, setVersions] = useState<BibleVersion[]>([]);
@@ -524,14 +532,36 @@ export const BibliaScreen = ({
     }
   };
 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     setError('');
+
+    if (annotationOpen) {
+      setAnnotationOpen(false);
+      return true;
+    }
+
+    if (selectedVerses.size || highlightStyle) {
+      setSelectedVerses(new Set());
+      setHighlightStyle(null);
+      return true;
+    }
+
+    if (searchResults.length) {
+      setSearchResults([]);
+      return true;
+    }
+
+    if (searchOpen) {
+      setSearchOpen(false);
+      setSearchTerm('');
+      return true;
+    }
 
     if (step === 'verses') {
       setStep('chapters');
       setSelectedChapter(null);
       setVerses([]);
-      return;
+      return true;
     }
 
     if (step === 'chapters') {
@@ -541,8 +571,13 @@ export const BibliaScreen = ({
       setSelectedChapter(null);
       setChapters([]);
       setBookVerses([]);
+      return true;
     }
-  };
+
+    return false;
+  }, [annotationOpen, highlightStyle, searchOpen, searchResults.length, selectedVerses.size, step]);
+
+  useImperativeHandle(ref, () => ({ handleBack: goBack }), [goBack]);
 
   const goToBooks = () => {
     setSelectedVerses(new Set());
@@ -880,7 +915,15 @@ export const BibliaScreen = ({
                   />
                 )}
               </ScrollView>
-              <View style={styles.readingBar}>
+              <View
+                style={[
+                  styles.readingBar,
+                  {
+                    minHeight: 62 + bottomSafeSpacing,
+                    paddingBottom: bottomSafeSpacing,
+                  },
+                ]}
+              >
                 {selectedVerses.size ? (
                   <>
                     <Text style={styles.selectionCount}>{selectedVerses.size}</Text>
@@ -898,7 +941,7 @@ export const BibliaScreen = ({
                   </>
                 )}
               </View>
-              {highlightStyle && selectedVerses.size ? <ColorPalette onSelect={applyHighlight} disabled={savingHighlight} /> : null}
+              {highlightStyle && selectedVerses.size ? <ColorPalette onSelect={applyHighlight} disabled={savingHighlight} bottomInset={bottomSafeSpacing} /> : null}
               <AnnotationEditor visible={annotationOpen} references={selectedReferences} onClose={() => setAnnotationOpen(false)} onSaved={() => { setAnnotationOpen(false); setSelectedVerses(new Set()); }} />
             </View>
           ) : null}
@@ -912,7 +955,7 @@ export const BibliaScreen = ({
       ) : null}
     </View>
   );
-};
+});
 
 const SearchGlyph = ({ active }: { active: boolean }) => (
   <Icon as={Search} color={active ? colors.white : colors.primary} />
@@ -1002,7 +1045,7 @@ const highlightTextStyle = (items: BibleHighlight[]) => {
   };
 };
 const ToolbarButton = ({ icon, label, active, disabled, onPress }: { icon: typeof Search; label: string; active?: boolean; disabled?: boolean; onPress: () => void }) => <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} style={[styles.toolbarButton, active && styles.toolbarButtonActive, disabled && styles.toolbarButtonDisabled]} onPress={onPress}><Icon as={icon} size={20} /></Pressable>;
-const ColorPalette = ({ onSelect, disabled }: { onSelect: (color: HighlightColor) => void; disabled: boolean }) => <View style={styles.palette}>{(Object.keys(highlightColors) as HighlightColor[]).map(color => <Pressable key={color} accessibilityLabel={`Cor ${color}`} disabled={disabled} style={[styles.colorDot, { backgroundColor: highlightColors[color] }]} onPress={() => onSelect(color)} />)}</View>;
+const ColorPalette = ({ onSelect, disabled, bottomInset }: { onSelect: (color: HighlightColor) => void; disabled: boolean; bottomInset: number }) => <View style={[styles.palette, { bottom: 68 + bottomInset }]}>{(Object.keys(highlightColors) as HighlightColor[]).map(color => <Pressable key={color} accessibilityLabel={`Cor ${color}`} disabled={disabled} style={[styles.colorDot, { backgroundColor: highlightColors[color] }]} onPress={() => onSelect(color)} />)}</View>;
 
 const EmptyState = ({
   text,
