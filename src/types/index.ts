@@ -135,7 +135,7 @@ export interface EventoInscricao {
 export interface CreateEventoInscricaoPayload {
   nome: string;
   email: string;
-  telefone: string;
+  telefone?: string | null;
 }
 
 export interface Louvor {

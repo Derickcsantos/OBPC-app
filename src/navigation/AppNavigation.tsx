@@ -189,7 +189,7 @@ export const AppNavigation = () => {
       case 'Perfil':
         return <ProfileScreen />;
       case 'Configuracoes':
-        return <ConfiguracoesScreen />;
+        return <ConfiguracoesScreen key={themePreference} />;
       case 'Pessoa':
         return selectedPerson ? (
           <PessoaScreen

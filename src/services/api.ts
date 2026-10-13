@@ -483,6 +483,10 @@ export const uploadAdminMedia = async (file: AdminUploadFile, context: AdminCont
   return result.url;
 };
 
+export const updateMinisterioImagem = async (id: string, urlImagem: string): Promise<void> => {
+  await api.put(`/api/ministerios/${encodeURIComponent(id)}/foto-principal`, { url_imagem: urlImagem });
+};
+
 export const getBibleVersions = async (): Promise<BibleVersion[]> => {
   return cachedGet('biblia:versions', async () => {
     const response = await api.get('/api/biblia/versions');

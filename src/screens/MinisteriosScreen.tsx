@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   cardCover: {
-    height: 170,
+    aspectRatio: 16 / 9,
     width: '100%',
     backgroundColor: colors.surfaceMuted,
   },

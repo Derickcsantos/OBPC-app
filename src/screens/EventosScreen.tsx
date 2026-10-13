@@ -29,6 +29,7 @@ import {
 import { colors } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import { Evento } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const formatDate = (date?: string) => {
   if (!date) {
@@ -316,7 +317,7 @@ const EventoItem = ({
         <Image
           source={{ uri: mainImage }}
           style={styles.eventImage}
-          resizeMode="contain"
+          resizeMode="cover"
         />
       ) : null}
       <Text style={styles.eventDate}>{formatDate(evento.data_evento)}</Text>
@@ -455,6 +456,7 @@ const EventoDetail = ({
   loading: boolean;
   onBack: () => void;
 }) => {
+  const { user } = useAuth();
   const { width } = useWindowDimensions();
   const imageWidth = Math.max(width - spacing.page * 2, 0);
   const [activePhoto, setActivePhoto] = useState(0);
@@ -483,9 +485,11 @@ const EventoDetail = ({
       Alert.alert('Data indisponível', 'Este evento ainda não possui uma data válida para adicionar ao calendário.');
       return;
     }
-    const canOpen = await Linking.canOpenURL(calendarUrl);
-    if (canOpen) await Linking.openURL(calendarUrl);
-    else Alert.alert('Não foi possível abrir', 'Abra o Google Calendar no navegador e tente novamente.');
+    try {
+      await Linking.openURL(calendarUrl);
+    } catch {
+      Alert.alert('Não foi possível abrir', 'Não foi possível abrir o navegador para adicionar este evento ao calendário.');
+    }
   };
 
   const mainImage = getMainImage(evento);
@@ -508,12 +512,12 @@ const EventoDetail = ({
   };
 
   const handleSubmit = async () => {
-    const trimmedName = nome.trim();
-    const trimmedEmail = email.trim();
+    const trimmedName = nome.trim() || user?.nome_usuario?.trim() || '';
+    const trimmedEmail = email.trim() || user?.email_usuario?.trim() || '';
     const trimmedPhone = telefone.trim();
 
-    if (!trimmedName || !trimmedEmail || trimmedPhone.length < 8) {
-      Alert.alert('Dados obrigatorios', 'Preencha nome, email e telefone.');
+    if (!trimmedName || !trimmedEmail || (!user && trimmedPhone.length < 8)) {
+      Alert.alert('Dados obrigatorios', user ? 'Sua conta nao possui os dados necessarios para esta inscricao.' : 'Preencha nome, email e telefone.');
       return;
     }
 
@@ -531,7 +535,7 @@ const EventoDetail = ({
       await createEventoInscricao(evento.evento_id, {
         nome: trimmedName,
         email: trimmedEmail,
-        telefone: trimmedPhone,
+        telefone: trimmedPhone || null,
       });
       setNome('');
       setEmail('');
@@ -820,7 +824,7 @@ const styles = StyleSheet.create({
   },
   eventImage: {
     width: '100%',
-    height: 132,
+    aspectRatio: 16 / 9,
     backgroundColor: colors.surfaceMuted,
   },
   eventDate: {

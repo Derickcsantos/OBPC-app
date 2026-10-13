@@ -10,6 +10,10 @@ import { radius, spacing, typography } from '../theme/tokens';
 import { Annotation, AnnotationPayload, BibleReference } from '../types';
 
 const referenceLabel = (reference: BibleReference) => `${reference.book}:${reference.chapter}:${reference.verse}`;
+const formatAnnotationDate = (value?: string) => {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat('pt-BR').format(date) : '';
+};
 
 export const AnnotationsScreen = () => {
   const { user } = useAuth();
@@ -19,6 +23,7 @@ export const AnnotationsScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<Annotation | null>(null);
+  const [selected, setSelected] = useState<Annotation | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
 
   const load = useCallback(async (nextPage = 1) => {
@@ -71,11 +76,12 @@ export const AnnotationsScreen = () => {
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {!loading && !error && !items.length ? <Text style={styles.empty}>Nenhuma anotação criada. Pressione um versículo na Bíblia para começar.</Text> : null}
         {items.map(item => (
-          <View key={item.id} style={styles.card}>
+          <View key={item.id} style={styles.card} onTouchEnd={() => setSelected(item)}>
             <Text style={styles.cardTitle}>{item.titulo || 'Anotação sem título'}</Text>
             <Text style={styles.references}>{item.versiculos.map(referenceLabel).join(' · ')}</Text>
             <Text style={styles.body} numberOfLines={4}>{item.conteudo}</Text>
             <View style={styles.actions}>
+              <Text style={styles.date}>{formatAnnotationDate(item.created_at)}</Text>
               <Pressable accessibilityLabel="Editar anotação" style={styles.smallIcon} onPress={() => { setEditing(item); setEditorOpen(true); }}><Icon as={Edit3} size={18} /></Pressable>
               <Pressable accessibilityLabel="Excluir anotação" style={styles.smallIcon} onPress={() => remove(item)}><Icon as={Trash2} size={18} /></Pressable>
             </View>
@@ -90,6 +96,16 @@ export const AnnotationsScreen = () => {
         ) : null}
       </ScrollView>
       <AnnotationEditor visible={editorOpen} annotation={editing} onClose={() => setEditorOpen(false)} onSaved={() => { setEditorOpen(false); load(page); }} />
+      <Modal visible={Boolean(selected)} animationType="slide" onRequestClose={() => setSelected(null)}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+          <Pressable style={styles.backButton} onPress={() => setSelected(null)}><Icon as={ChevronLeft} size={18} /><Text style={styles.backText}>Voltar</Text></Pressable>
+          <Text style={styles.detailTitle}>{selected?.titulo || 'Anotacao sem titulo'}</Text>
+          <Text style={styles.detailBody}>{selected?.conteudo}</Text>
+          <View style={styles.linkedVerses}><Text style={styles.linkedTitle}>Textos vinculados</Text>{selected?.versiculos.map(reference => <Text key={`${reference.version}-${reference.book}-${reference.chapter}-${reference.verse}`} style={styles.linkedVerse}>{referenceLabel(reference)}</Text>)}</View>
+          {formatAnnotationDate(selected?.created_at) ? <Text style={styles.detailDate}>Criada em {formatAnnotationDate(selected?.created_at)}</Text> : null}
+          <View style={styles.detailActions}><Pressable style={styles.detailButton} onPress={() => { if (selected) { setEditing(selected); setEditorOpen(true); setSelected(null); } }}><Text style={styles.detailButtonText}>Editar</Text></Pressable><Pressable style={styles.detailButton} onPress={() => selected && remove(selected)}><Text style={styles.detailButtonText}>Excluir</Text></Pressable></View>
+        </ScrollView>
+      </Modal>
     </View>
   );
 };
@@ -143,7 +159,8 @@ const styles = StyleSheet.create({
   stateGap: { marginVertical: 24 }, error: { color: colors.danger, padding: spacing.md }, empty: { color: colors.textSecondary, padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md },
   card: { padding: spacing.md, marginBottom: 10, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, backgroundColor: colors.surface },
   cardTitle: { color: colors.textPrimary, fontSize: typography.subtitle, fontWeight: '600' }, references: { color: colors.textSecondary, fontSize: typography.caption, marginTop: 5 }, body: { color: colors.textSecondary, lineHeight: 21, marginTop: 10 },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }, smallIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 8 }, date: { flex: 1, color: colors.textSecondary, fontSize: typography.caption }, smallIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  backButton: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: 44, gap: 6, marginBottom: spacing.section }, backText: { color: colors.textPrimary, fontWeight: '600' }, detailTitle: { color: colors.textPrimary, fontSize: typography.title, fontWeight: '600' }, detailBody: { color: colors.textPrimary, lineHeight: 24, marginTop: spacing.section }, linkedVerses: { marginTop: spacing.section, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, linkedTitle: { color: colors.textPrimary, fontWeight: '600', marginBottom: 8 }, linkedVerse: { color: colors.textSecondary, lineHeight: 22 }, detailDate: { color: colors.textSecondary, marginTop: spacing.section, fontSize: typography.caption }, detailActions: { flexDirection: 'row', gap: 10, marginTop: spacing.section }, detailButton: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, detailButtonText: { color: colors.textPrimary, fontWeight: '600' },
   pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 10 }, pageButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.md }, pageText: { color: colors.textSecondary }, nextIcon: { transform: [{ rotate: '180deg' }] },
   modalLayer: { flex: 1, justifyContent: 'flex-end' }, backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.48)' }, sheet: { padding: spacing.page, paddingBottom: 30, borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: colors.surface }, sheetTitle: { color: colors.textPrimary, fontSize: typography.heading, fontWeight: '600', marginBottom: 14 },
   input: { minHeight: 46, color: colors.textPrimary, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12, marginBottom: 12 }, textArea: { minHeight: 150 }, sheetActions: { flexDirection: 'row', gap: 10 }, cancelButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center' }, cancelText: { color: colors.textSecondary, fontWeight: '600' }, saveButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.primary }, saveText: { color: colors.white, fontWeight: '600' },
