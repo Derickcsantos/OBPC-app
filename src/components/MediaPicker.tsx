@@ -9,7 +9,7 @@ import { AdminContentKind } from '../types';
 import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/tokens';
 
-export const MediaPicker = ({ context, value, onChange }: { context: AdminContentKind; value?: string | null; onChange: (url: string) => void }) => {
+export const MediaPicker = ({ context, value, onChange, readOnly = false }: { context: AdminContentKind; value?: string | null; onChange: (url: string) => void; readOnly?: boolean }) => {
   const [uploading, setUploading] = useState(false);
   const pick = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -26,10 +26,10 @@ export const MediaPicker = ({ context, value, onChange }: { context: AdminConten
   };
   return <View style={styles.container}>
     {value ? <Image source={{ uri: value }} style={styles.preview} resizeMode="contain" /> : null}
-    <View style={styles.actions}>
+    {!readOnly ? <View style={styles.actions}>
       <Pressable accessibilityLabel="Selecionar imagem" disabled={uploading} style={styles.button} onPress={pick}>{uploading ? <ActivityIndicator color={colors.primary} /> : <><Icon as={ImagePlus} size={18} /><Text style={styles.text}>{value ? 'Substituir' : 'Selecionar imagem'}</Text></>}</Pressable>
       {value ? <Pressable accessibilityLabel="Remover imagem" style={styles.iconButton} onPress={() => onChange('')}><Icon as={Trash2} size={18} /></Pressable> : null}
-    </View>
+    </View> : null}
   </View>;
 };
 

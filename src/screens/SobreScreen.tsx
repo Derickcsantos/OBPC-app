@@ -26,7 +26,7 @@ const cardGap = 12;
 
 const address =
   'Av. João Paulo I, 1400 - Parque São Luís, São Paulo - SP, 02842-280';
-const whatsappUrl = 'https://w.app/obpc';
+const whatsappUrl = 'https://wa.me/5511975835681';
 const instagramUrl = 'https://www.instagram.com/obpcfreguesiaoficial?vrfl=eHp0MnJtOGZjNTBt';
 const mapsUrl =
   'https://www.google.com/maps/dir/?api=1&destination=Av.%20Jo%C3%A3o%20Paulo%20I%2C%201400%20-%20Parque%20S%C3%A3o%20Lu%C3%ADs%2C%20S%C3%A3o%20Paulo%20-%20SP%2C%2002842-280';

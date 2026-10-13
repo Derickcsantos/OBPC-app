@@ -5,6 +5,7 @@ import {
   AdminUser,
   Annotation,
   AnnotationPayload,
+  BibleReference,
   BibleHighlight,
   BibleHighlightPayload,
   Book,
@@ -340,12 +341,14 @@ export const getPlanoEstudoDiaTextos = async (plano: string, dia: number, versio
 };
 
 export const getOracoes = async (filters: { q?: string; data?: string; page?: number; limit?: number } = {}): Promise<PaginatedResult<Oracao>> => {
-  const params = new URLSearchParams();
-  if (filters.q?.trim()) params.set('q', filters.q.trim());
-  if (filters.data) params.set('data', filters.data);
-  if (filters.page) params.set('page', String(filters.page));
-  if (filters.limit) params.set('limit', String(filters.limit));
-  const response = await api.get(`/api/oracoes${params.size ? `?${params.toString()}` : ''}`);
+  const response = await api.get('/api/oracoes', {
+    params: {
+      q: filters.q?.trim() || undefined,
+      data: filters.data,
+      page: filters.page,
+      limit: filters.limit,
+    },
+  });
   return extractPaginated<Oracao>(response, filters.page, filters.limit);
 };
 export const getOracaoById = (id: string) => getResourceById<Oracao>('/api/oracoes', id);
@@ -409,13 +412,43 @@ export const getAdminUsuarioOracoes = async (id: string, page = 1, limit = 20): 
   return extractPaginated<Oracao>(response, page, limit);
 };
 
+const normalizeBibleReference = (value: unknown): BibleReference | null => {
+  if (!value || typeof value !== 'object') return null;
+
+  const reference = value as Partial<BibleReference>;
+  const book = Number(reference.book);
+  const chapter = Number(reference.chapter);
+  const verse = Number(reference.verse);
+
+  if (!reference.version || !Number.isInteger(book) || !Number.isInteger(chapter) || !Number.isInteger(verse)) return null;
+
+  return { version: reference.version, book, chapter, verse };
+};
+
+const normalizeAnnotation = (value: unknown): Annotation => {
+  const annotation = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const rawReferences = annotation.versiculos ?? annotation.anotacoes_biblicas_versiculos;
+
+  return {
+    id: String(annotation.id ?? annotation.anotacao_id ?? ''),
+    titulo: typeof annotation.titulo === 'string' ? annotation.titulo : null,
+    conteudo: typeof annotation.conteudo === 'string' ? annotation.conteudo : '',
+    versiculos: normalizeArray<unknown>(rawReferences)
+      .map(normalizeBibleReference)
+      .filter((reference): reference is BibleReference => reference !== null),
+    created_at: typeof annotation.created_at === 'string' ? annotation.created_at : undefined,
+    updated_at: typeof annotation.updated_at === 'string' ? annotation.updated_at : undefined,
+  };
+};
+
 export const getAnnotations = async (page = 1, limit = 20): Promise<PaginatedResult<Annotation>> => {
   const response = await api.get('/api/usuarios/me/anotacoes', { params: { page, limit: Math.min(limit, 100) } });
-  return extractPaginated<Annotation>(response, page, limit);
+  const result = extractPaginated<unknown>(response, page, limit);
+  return { ...result, items: result.items.map(normalizeAnnotation) };
 };
-export const getAnnotation = async (id: string): Promise<Annotation> => extractData<Annotation>(await api.get(`/api/usuarios/me/anotacoes/${encodeURIComponent(id)}`));
-export const createAnnotation = async (payload: AnnotationPayload): Promise<Annotation> => extractData<Annotation>(await api.post('/api/usuarios/me/anotacoes', payload));
-export const updateAnnotation = async (id: string, payload: AnnotationPayload): Promise<Annotation> => extractData<Annotation>(await api.put(`/api/usuarios/me/anotacoes/${encodeURIComponent(id)}`, payload));
+export const getAnnotation = async (id: string): Promise<Annotation> => normalizeAnnotation(extractData<unknown>(await api.get(`/api/usuarios/me/anotacoes/${encodeURIComponent(id)}`)));
+export const createAnnotation = async (payload: AnnotationPayload): Promise<Annotation> => normalizeAnnotation(extractData<unknown>(await api.post('/api/usuarios/me/anotacoes', payload)));
+export const updateAnnotation = async (id: string, payload: AnnotationPayload): Promise<Annotation> => normalizeAnnotation(extractData<unknown>(await api.put(`/api/usuarios/me/anotacoes/${encodeURIComponent(id)}`, payload)));
 export const deleteAnnotation = async (id: string): Promise<void> => { await api.delete(`/api/usuarios/me/anotacoes/${encodeURIComponent(id)}`); };
 
 export const getHighlights = async (version: string, book: number, chapter: number): Promise<BibleHighlight[]> => {

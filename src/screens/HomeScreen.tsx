@@ -88,7 +88,7 @@ export const HomeScreen = ({ onNavigate }: HomeScreenProps) => {
         <Shortcut
           Icon={MessageCircle}
           label="WhatsApp"
-          onPress={() => openExternalUrl('https://w.app/obpc')}
+          onPress={() => openExternalUrl('https://wa.me/5511975835681')}
         />
         <Shortcut Icon={Music2} label="Louvores" />
         <Shortcut

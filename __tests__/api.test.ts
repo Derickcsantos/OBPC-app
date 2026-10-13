@@ -2,6 +2,7 @@ import axios from 'axios';
 import {
   createAnnotation,
   desmarcarOracaoComoOrada,
+  getAnnotations,
   getAdminUsers,
   getHighlights,
   marcarOracaoComoOrada,
@@ -59,6 +60,24 @@ describe('marcarOracaoComoOrada', () => {
     await expect(createAnnotation({ titulo: null, conteudo: 'Nota', versiculos: [reference] })).resolves.toMatchObject({ id: 'a1' });
     await expect(getHighlights('nvi', 1, 1)).resolves.toEqual([]);
     await expect(putHighlight({ ...reference, style: 'underline', color: 'blue' })).resolves.toMatchObject({ id: 'd1' });
+  });
+
+  it('normaliza anotacoes retornadas pelo Worker para a lista', async () => {
+    apiClient.get.mockResolvedValueOnce({
+      data: {
+        data: [{
+          anotacao_id: 'a1',
+          titulo: 'Reflexao',
+          conteudo: 'Nota privada',
+          anotacoes_biblicas_versiculos: [{ version: 'nvi', book: 1, chapter: 1, verse: 1 }],
+        }],
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      },
+    });
+
+    await expect(getAnnotations()).resolves.toMatchObject({
+      items: [{ id: 'a1', versiculos: [{ version: 'nvi', book: 1, chapter: 1, verse: 1 }] }],
+    });
   });
 
   it('altera papel somente pelo endpoint administrativo', async () => {
