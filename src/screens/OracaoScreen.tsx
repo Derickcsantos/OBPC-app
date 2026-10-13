@@ -1,4 +1,4 @@
-import { Plus, ChevronLeft, Check, Heart } from 'lucide-react-native';
+import { Plus, ChevronLeft, ChevronRight, Check, Heart, CalendarDays, Search, X } from 'lucide-react-native';
 import { Icon } from '../components/Icon';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -33,6 +33,15 @@ import axios from 'axios';
 type OracaoView = 'list' | 'detail' | 'create';
 type PrayerTab = 'all' | 'history' | 'pending';
 
+const getSaoPauloDateKey = (value?: string) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
+  const read = (type: string) => parts.find(part => part.type === type)?.value ?? '';
+  return `${read('year')}-${read('month')}-${read('day')}`;
+};
+
 export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab }) => {
   const { user } = useAuth();
   const [view, setView] = useState<OracaoView>('list');
@@ -48,15 +57,20 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
   const [loadingList, setLoadingList] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [orandoIds, setOrandoIds] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [visibleMonth, setVisibleMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
   const loadOracoes = useCallback(async () => {
     try {
       const [pedidos, oradas] = await Promise.all([
-        getOracoes(),
+        getOracoes({ q: debouncedSearch || undefined, data: selectedDate ?? undefined, limit: 100 }),
         user ? getMinhasOracoesOradas(1, 100) : Promise.resolve({ items: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 1 } }),
       ]);
       const prayedIds = new Set(oradas.items.map(item => item.oracao_id).filter(Boolean));
-      setOracoes(pedidos.map(item => ({
+      setOracoes(pedidos.items.map(item => ({
         ...item,
         orado_por_mim: Boolean(item.orado_por_mim || item.orado || (item.oracao_id && prayedIds.has(item.oracao_id))),
       })));
@@ -68,11 +82,16 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
       setLoadingList(false);
       setRefreshing(false);
     }
-  }, [user]);
+  }, [debouncedSearch, selectedDate, user]);
 
   useEffect(() => {
     loadOracoes();
   }, [loadOracoes]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 280);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const resetForm = () => {
     setNome('');
@@ -135,6 +154,19 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
     setRefreshing(true);
     loadOracoes();
   };
+
+  const localMatches = useCallback((item: Oracao) => {
+    const term = search.trim().toLocaleLowerCase('pt-BR');
+    const matchesText = !term || `${item.nome_pedido ?? ''} ${item.descricao_pedido ?? ''}`.toLocaleLowerCase('pt-BR').includes(term);
+    const matchesDate = !selectedDate || getSaoPauloDateKey(item.created_at) === selectedDate;
+    return matchesText && matchesDate;
+  }, [search, selectedDate]);
+
+  const visibleOracoes = activeTab === 'history'
+    ? historico.filter(localMatches)
+    : activeTab === 'pending'
+      ? oracoes.filter(item => !item.orado && !item.orado_por_mim).filter(localMatches)
+      : oracoes;
 
   const handleOrado = async (oracao: Oracao) => {
     const id = oracao.oracao_id;
@@ -317,8 +349,22 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
           </View>
         ) : null}
 
-        {(activeTab === 'history' ? historico : activeTab === 'pending' ? oracoes.filter(item => !item.orado && !item.orado_por_mim) : oracoes).length ? (
-          (activeTab === 'history' ? historico : activeTab === 'pending' ? oracoes.filter(item => !item.orado && !item.orado_por_mim) : oracoes).map((oracao, index) => (
+        <View style={styles.filterBlock}>
+          <View style={styles.filterRow}>
+            <View style={styles.searchBox}>
+              <Icon as={Search} size={18} color={colors.textSecondary} />
+              <TextInput value={search} onChangeText={setSearch} placeholder="Buscar pedidos" placeholderTextColor={colors.textSecondary} style={styles.searchInput} accessibilityLabel="Buscar pedidos de oração" />
+              {search ? <TouchableOpacity accessibilityLabel="Limpar busca" onPress={() => setSearch('')}><Icon as={X} size={17} color={colors.textSecondary} /></TouchableOpacity> : null}
+            </View>
+            <TouchableOpacity accessibilityLabel={calendarOpen ? 'Fechar calendário' : 'Filtrar por data'} accessibilityState={{ expanded: calendarOpen, selected: Boolean(selectedDate) }} style={[styles.calendarButton, (calendarOpen || selectedDate) && styles.calendarButtonActive]} onPress={() => setCalendarOpen(value => !value)}>
+              <Icon as={CalendarDays} size={20} color={calendarOpen || selectedDate ? colors.white : colors.primary} />
+            </TouchableOpacity>
+          </View>
+          {calendarOpen ? <PrayerCalendar month={visibleMonth} selectedDate={selectedDate} onMonthChange={setVisibleMonth} onSelectDate={date => { setSelectedDate(date); setCalendarOpen(false); }} /> : null}
+        </View>
+
+        {visibleOracoes.length ? (
+          visibleOracoes.map((oracao, index) => (
             <View
               key={oracao.oracao_id || `oracao-${index}`}
               style={styles.prayerCard}
@@ -355,6 +401,37 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
         <Icon as={Plus} color={colors.white} style={styles.floatingButtonIcon} />
         <Text style={styles.floatingButtonText}>Novo pedido</Text>
       </TouchableOpacity>
+    </View>
+  );
+};
+
+const PrayerCalendar = ({ month, selectedDate, onMonthChange, onSelectDate }: {
+  month: Date;
+  selectedDate: string | null;
+  onMonthChange: (month: Date) => void;
+  onSelectDate: (date: string | null) => void;
+}) => {
+  const year = month.getFullYear();
+  const monthIndex = month.getMonth();
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const firstWeekDay = new Date(year, monthIndex, 1).getDay();
+  const cells = [...Array(firstWeekDay).fill(null), ...Array.from({ length: daysInMonth }, (_, index) => index + 1)];
+  while (cells.length % 7) cells.push(null);
+  const keyFor = (day: number) => `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return (
+    <View style={styles.calendarCard}>
+      <View style={styles.calendarHeader}>
+        <Text style={styles.calendarTitle}>{new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(month)}</Text>
+        <View style={styles.calendarNavigation}>
+          <TouchableOpacity accessibilityLabel="Mês anterior" style={styles.calendarNavButton} onPress={() => onMonthChange(new Date(year, monthIndex - 1, 1))}><Icon as={ChevronLeft} size={18} /></TouchableOpacity>
+          <TouchableOpacity accessibilityLabel="Próximo mês" style={styles.calendarNavButton} onPress={() => onMonthChange(new Date(year, monthIndex + 1, 1))}><Icon as={ChevronRight} size={18} /></TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.calendarGrid}>
+        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((label, index) => <Text key={`${label}-${index}`} style={styles.weekLabel}>{label}</Text>)}
+        {cells.map((day, index) => day ? (() => { const date = keyFor(day); const selected = selectedDate === date; return <TouchableOpacity key={date} accessibilityRole="button" accessibilityState={{ selected }} style={[styles.dayCell, selected && styles.dayCellSelected]} onPress={() => onSelectDate(selected ? null : date)}><Text style={[styles.dayText, selected && styles.dayTextSelected]}>{day}</Text></TouchableOpacity>; })() : <View key={`empty-${index}`} style={styles.dayCell} />)}
+      </View>
+      {selectedDate ? <TouchableOpacity onPress={() => onSelectDate(null)} style={styles.clearDateButton}><Text style={styles.clearDateText}>Limpar data</Text></TouchableOpacity> : null}
     </View>
   );
 };
@@ -449,6 +526,25 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
+  filterBlock: { marginBottom: spacing.md },
+  filterRow: { flexDirection: 'row', gap: spacing.sm },
+  searchBox: { flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surface },
+  searchInput: { flex: 1, minHeight: 42, color: colors.textPrimary, fontSize: typography.body, paddingVertical: 0 },
+  calendarButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surface },
+  calendarButtonActive: { backgroundColor: colors.primary },
+  calendarCard: { marginTop: spacing.sm, padding: spacing.sm, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, backgroundColor: colors.surface },
+  calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  calendarTitle: { color: colors.textPrimary, fontSize: typography.body, fontWeight: '600', textTransform: 'capitalize' },
+  calendarNavigation: { flexDirection: 'row', gap: 6 },
+  calendarNavButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.surfaceMuted },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  weekLabel: { width: '14.2857%', textAlign: 'center', color: colors.textSecondary, fontSize: typography.caption, marginBottom: 4 },
+  dayCell: { width: '14.2857%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md },
+  dayCellSelected: { backgroundColor: colors.primary },
+  dayText: { color: colors.textPrimary, fontSize: typography.caption },
+  dayTextSelected: { color: colors.white, fontWeight: '600' },
+  clearDateButton: { alignSelf: 'flex-start', marginTop: 6, paddingVertical: 6 },
+  clearDateText: { color: colors.accent, fontSize: typography.caption, fontWeight: '600' },
   tab: {
     minHeight: 44,
     flex: 1,

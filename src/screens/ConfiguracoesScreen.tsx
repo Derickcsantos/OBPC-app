@@ -58,7 +58,7 @@ export const ConfiguracoesScreen = () => {
           <Switch
             accessibilityLabel="Ativar modo escuro"
             value={themePreference === 'dark'}
-            onValueChange={active => setThemePreference(active ? 'dark' : 'light')}
+            onValueChange={active => { setThemePreference(active ? 'dark' : 'light').catch(() => undefined); }}
             {...(Platform.OS === 'web' ? { activeThumbColor: colors.primary } : {})}
             trackColor={{ false: colors.border, true: colors.textSecondary }}
             thumbColor={themePreference === 'dark' ? colors.primary : colors.surface}

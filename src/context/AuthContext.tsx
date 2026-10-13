@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import axios from 'axios';
 import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from '../config/auth';
@@ -190,6 +191,16 @@ const getSignInErrorMessage = (error: unknown): string => {
     if (error.code === googleSignin.statusCodes.IN_PROGRESS) {
       return 'O login com Google já está em andamento.';
     }
+  }
+
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    const backendMessage = typeof error.response?.data?.message === 'string' ? error.response.data.message : null;
+    if (status === 502 || status === 503) {
+      return 'O servidor não conseguiu validar o login Google agora. Tente novamente em instantes. Se o problema persistir, a configuração GOOGLE_CLIENT_IDS do Worker precisa incluir o Web Client ID do aplicativo.';
+    }
+    if (status) return backendMessage ?? `O login foi recusado pelo servidor (${status}).`;
+    return 'Não foi possível conectar ao servidor para concluir o login Google.';
   }
 
   if (error instanceof Error && error.message) {

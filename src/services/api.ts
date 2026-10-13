@@ -339,7 +339,15 @@ export const getPlanoEstudoDiaTextos = async (plano: string, dia: number, versio
   });
 };
 
-export const getOracoes = () => getResource<Oracao>('/api/oracoes');
+export const getOracoes = async (filters: { q?: string; data?: string; page?: number; limit?: number } = {}): Promise<PaginatedResult<Oracao>> => {
+  const params = new URLSearchParams();
+  if (filters.q?.trim()) params.set('q', filters.q.trim());
+  if (filters.data) params.set('data', filters.data);
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
+  const response = await api.get(`/api/oracoes${params.size ? `?${params.toString()}` : ''}`);
+  return extractPaginated<Oracao>(response, filters.page, filters.limit);
+};
 export const getOracaoById = (id: string) => getResourceById<Oracao>('/api/oracoes', id);
 export const postOracao = async (oracao: Oracao) => {
   try {

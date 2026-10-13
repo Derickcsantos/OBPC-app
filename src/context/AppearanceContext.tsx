@@ -10,7 +10,8 @@ interface AppearanceContextValue {
   fontSizeOffset: number;
   setFontSizePreference: (value: FontSizePreference) => void;
   themePreference: ThemePreference;
-  setThemePreference: (value: ThemePreference) => void;
+  setThemePreference: (value: ThemePreference) => Promise<void>;
+  preferencesReady: boolean;
 }
 
 const FONT_SIZE_KEY = 'settings:font-size';
@@ -27,7 +28,8 @@ const AppearanceContext = createContext<AppearanceContextValue>({
   fontSizeOffset: 0,
   setFontSizePreference: () => undefined,
   themePreference: 'light',
-  setThemePreference: () => undefined,
+  setThemePreference: async () => undefined,
+  preferencesReady: false,
 });
 
 export const AppearanceProvider = ({ children }: React.PropsWithChildren) => {
@@ -77,9 +79,9 @@ export const AppearanceProvider = ({ children }: React.PropsWithChildren) => {
     setCachedValue(FONT_SIZE_KEY, value);
   };
 
-  const setThemePreference = (value: ThemePreference) => {
+  const setThemePreference = async (value: ThemePreference) => {
     setTheme(value);
-    setCachedValue(THEME_KEY, value);
+    await setCachedValue(THEME_KEY, value);
   };
 
   const value = useMemo(
@@ -89,8 +91,9 @@ export const AppearanceProvider = ({ children }: React.PropsWithChildren) => {
       setFontSizePreference,
       themePreference,
       setThemePreference,
+      preferencesReady,
     }),
-    [fontSizePreference, themePreference],
+    [fontSizePreference, preferencesReady, themePreference],
   );
 
   return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;

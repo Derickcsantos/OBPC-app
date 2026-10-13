@@ -13,6 +13,7 @@ import {
 import { Icon } from '../components/Icon';
 import React from 'react';
 import {
+  Alert,
   Image,
   Linking,
   ScrollView,
@@ -37,10 +38,10 @@ interface HomeScreenProps {
 }
 
 const openExternalUrl = async (url: string) => {
-  const supported = await Linking.canOpenURL(url);
-
-  if (supported) {
-    Linking.openURL(url);
+  try {
+    await Linking.openURL(url);
+  } catch {
+    Alert.alert('Não foi possível abrir', 'Verifique se há um navegador disponível.');
   }
 };
 
@@ -81,7 +82,7 @@ export const HomeScreen = ({ onNavigate }: HomeScreenProps) => {
           Icon={Camera}
           label="Instagram"
           onPress={() =>
-            openExternalUrl('https://www.instagram.com/obpcfreguesiaoficial/')
+            openExternalUrl('https://www.instagram.com/obpcfreguesiaoficial?vrfl=eHp0MnJtOGZjNTBt')
           }
         />
         <Shortcut

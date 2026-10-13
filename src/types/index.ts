@@ -192,6 +192,7 @@ export interface Oracao {
   orado?: boolean;
   orado_por_mim?: boolean;
   total_oracoes?: number;
+  created_at?: string;
 }
 
 export interface Pagination {

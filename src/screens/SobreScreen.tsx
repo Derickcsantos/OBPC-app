@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
+  ActivityIndicator, Alert,
   FlatList,
   Image,
   Linking,
@@ -27,14 +27,15 @@ const cardGap = 12;
 const address =
   'Av. João Paulo I, 1400 - Parque São Luís, São Paulo - SP, 02842-280';
 const whatsappUrl = 'https://w.app/obpc';
-const instagramUrl = 'https://www.instagram.com/obpcfreguesiaoficial/';
+const instagramUrl = 'https://www.instagram.com/obpcfreguesiaoficial?vrfl=eHp0MnJtOGZjNTBt';
 const mapsUrl =
-  'https://www.google.com/maps/search/?api=1&query=Av.%20Joao%20Paulo%20I%2C%201400%20-%20Parque%20Sao%20Luis%2C%20Sao%20Paulo%20-%20SP%2C%2002842-280';
+  'https://www.google.com/maps/dir/?api=1&destination=Av.%20Jo%C3%A3o%20Paulo%20I%2C%201400%20-%20Parque%20S%C3%A3o%20Lu%C3%ADs%2C%20S%C3%A3o%20Paulo%20-%20SP%2C%2002842-280';
 
 const openUrl = async (url: string) => {
-  const supported = await Linking.canOpenURL(url);
-  if (supported) {
+  try {
     await Linking.openURL(url);
+  } catch {
+    Alert.alert('Não foi possível abrir', 'Verifique se há um navegador ou aplicativo de mapas disponível.');
   }
 };
 
