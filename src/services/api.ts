@@ -28,6 +28,7 @@ import {
   PaginatedResult,
   Pagination,
   Pessoa,
+  PessoaImagem,
   PlanoEstudo,
   PlanoEstudoDetalhe,
   PlanoEstudoDia,
@@ -244,6 +245,11 @@ export const removerMinisterioInteresse = async (id: string): Promise<void> => {
 
 export const getPessoas = () => getResource<Pessoa>('/api/pessoas');
 export const getPessoaById = (id: string) => getResourceById<Pessoa>('/api/pessoas', id);
+export const createPessoaImagem = (payload: Pick<PessoaImagem, 'pessoa_id' | 'url_imagem' | 'ordem'>) =>
+  api.post('/api/pessoas-imagens', payload).then(extractData<PessoaImagem>);
+export const updatePessoaImagem = (id: string, payload: Partial<Pick<PessoaImagem, 'url_imagem' | 'ordem'>>) =>
+  api.put(`/api/pessoas-imagens/${encodeURIComponent(id)}`, payload).then(extractData<PessoaImagem>);
+export const deletePessoaImagem = async (id: string): Promise<void> => { await api.delete(`/api/pessoas-imagens/${encodeURIComponent(id)}`); };
 
 export const getUsuarios = () => getResource<Usuario>('/api/usuarios');
 export const getUsuarioById = (id: string) => getResourceById<Usuario>('/api/usuarios', id);
@@ -486,6 +492,12 @@ export const uploadAdminMedia = async (file: AdminUploadFile, context: AdminCont
 export const updateMinisterioImagem = async (id: string, urlImagem: string): Promise<void> => {
   await api.put(`/api/ministerios/${encodeURIComponent(id)}/foto-principal`, { url_imagem: urlImagem });
 };
+
+export const createMinisterioFoto = async (ministerioId: string, urlImagem: string, ordem: number): Promise<void> => {
+  await api.post('/api/fotos-ministerios', { ministerio_id: ministerioId, url_imagem: urlImagem, ordem });
+};
+export const updateMinisterioFotoOrdem = async (id: string, ordem: number): Promise<void> => { await api.put(`/api/fotos-ministerios/${encodeURIComponent(id)}`, { ordem }); };
+export const deleteMinisterioFoto = async (id: string): Promise<void> => { await api.delete(`/api/fotos-ministerios/${encodeURIComponent(id)}`); };
 
 export const getBibleVersions = async (): Promise<BibleVersion[]> => {
   return cachedGet('biblia:versions', async () => {

@@ -31,7 +31,7 @@ const darkLogo = require('../assets/logo-completo-dark.jpeg');
 type ShortcutIcon = LucideIcon;
 
 export type HomeShortcutRoute =
-  'Ministerios' | 'Biblia' | 'Oracao' | 'Eventos' | 'Mensagens' | 'Sobre';
+  'Ministerios' | 'Biblia' | 'Oracao' | 'Eventos' | 'Mensagens' | 'Louvores' | 'Sobre';
 
 interface HomeScreenProps {
   onNavigate: (route: HomeShortcutRoute) => void;
@@ -90,7 +90,7 @@ export const HomeScreen = ({ onNavigate }: HomeScreenProps) => {
           label="WhatsApp"
           onPress={() => openExternalUrl('https://wa.me/5511975835681')}
         />
-        <Shortcut Icon={Music2} label="Louvores" />
+        <Shortcut Icon={Music2} label="Louvores" onPress={() => onNavigate('Louvores')} />
         <Shortcut
           Icon={BookOpenText}
           label="Plano de estudo"

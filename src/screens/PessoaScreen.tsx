@@ -1,6 +1,6 @@
 import { ArrowLeft, X } from 'lucide-react-native';
 import { Icon } from '../components/Icon';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   Linking,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
@@ -33,7 +34,14 @@ export const PessoaScreen = ({
   onBack: () => void;
 }) => {
   const [photoOpen, setPhotoOpen] = useState(false);
-  const photoSource = pessoa.url_imagem ? { uri: pessoa.url_imagem } : fallbackImage;
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const { width } = useWindowDimensions();
+  const photoWidth = width - (spacing.page * 2);
+  const photos = useMemo(() => {
+    const urls = [pessoa.url_imagem, ...(pessoa.imagens ?? []).sort((first, second) => (first.ordem ?? 0) - (second.ordem ?? 0)).map(image => image.url_imagem)]
+      .filter((url): url is string => Boolean(url));
+    return [...new Set(urls)];
+  }, [pessoa.imagens, pessoa.url_imagem]);
 
   return <>
   <ScrollView
@@ -46,10 +54,13 @@ export const PessoaScreen = ({
       <Text style={styles.backText}>Voltar</Text>
     </TouchableOpacity>
 
-    <Pressable accessibilityRole="button" accessibilityLabel={`Ampliar foto de ${pessoa.nome}`} onPress={() => setPhotoOpen(true)}>
-      <Image source={photoSource} style={styles.photo} resizeMode="contain" />
-      <Text style={styles.photoHint}>Toque para ampliar</Text>
-    </Pressable>
+    <View>
+      <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={event => setPhotoIndex(Math.round(event.nativeEvent.contentOffset.x / photoWidth))}>
+        {(photos.length ? photos : [undefined]).map((url, index) => <Pressable key={url ?? 'fallback'} accessibilityRole="button" accessibilityLabel={`Ampliar foto ${index + 1} de ${pessoa.nome}`} onPress={() => { setPhotoIndex(index); setPhotoOpen(true); }}><Image source={url ? { uri: url } : fallbackImage} style={[styles.photo, { width: photoWidth }]} resizeMode="cover" /></Pressable>)}
+      </ScrollView>
+      {photos.length > 1 ? <View style={styles.dots}>{photos.map((url, index) => <View key={url} style={[styles.dot, index === photoIndex && styles.dotActive]} />)}</View> : null}
+      <Text style={styles.photoHint}>{photos.length > 1 ? 'Deslize para ver as fotos · toque para ampliar' : 'Toque para ampliar'}</Text>
+    </View>
     <Text style={styles.name}>{pessoa.nome || 'Nome não informado'}</Text>
     <Text style={styles.role}>{pessoa.cargo || 'Cargo não informado'}</Text>
 
@@ -87,7 +98,9 @@ export const PessoaScreen = ({
   <Modal visible={photoOpen} animationType="fade" transparent={false} onRequestClose={() => setPhotoOpen(false)}>
     <View style={styles.photoViewer}>
       <Pressable accessibilityRole="button" accessibilityLabel="Fechar foto" style={styles.closePhoto} onPress={() => setPhotoOpen(false)}><Icon as={X} color="#FFFFFF" /></Pressable>
-      <Image source={photoSource} style={styles.fullPhoto} resizeMode="contain" />
+      <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentOffset={{ x: photoIndex * width, y: 0 }} onMomentumScrollEnd={event => setPhotoIndex(Math.round(event.nativeEvent.contentOffset.x / width))}>
+        {(photos.length ? photos : [undefined]).map(url => <Image key={url ?? 'fallback'} source={url ? { uri: url } : fallbackImage} style={[styles.fullPhoto, { width }]} resizeMode="contain" />)}
+      </ScrollView>
       <Text style={styles.fullPhotoName}>{pessoa.nome || 'Pessoa'}</Text>
     </View>
   </Modal>
@@ -113,7 +126,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   photo: {
-    width: '100%',
     height: 280,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceMuted,
@@ -140,7 +152,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fullPhoto: { width: '100%', height: '82%' },
+  fullPhoto: { height: '82%' },
+  dots: { position: 'absolute', bottom: 30, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.58)' },
+  dotActive: { width: 16, backgroundColor: colors.white },
   fullPhotoName: { color: '#FFFFFF', fontSize: typography.subtitle, fontWeight: '600', marginTop: 10 },
   name: {
     color: colors.textPrimary,

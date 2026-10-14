@@ -32,6 +32,7 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { SobreScreen } from '../screens/SobreScreen';
 import { AnnotationsScreen } from '../screens/AnnotationsScreen';
 import { AdminScreen } from '../screens/AdminScreen';
+import { LouvoresScreen } from '../screens/LouvoresScreen';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 import { useAppearance } from '../context/AppearanceContext';
@@ -44,6 +45,7 @@ type AppRoute =
   | 'Biblia'
   | 'Eventos'
   | 'Mensagens'
+  | 'Louvores'
   | 'Sobre'
   | 'Perfil'
   | 'Configuracoes'
@@ -59,6 +61,7 @@ const routeIcons: Record<AppRoute, LucideIcon> = {
   Oracao: HandHeart,
   Eventos: CalendarDays,
   Mensagens: BookOpenText,
+  Louvores: BookOpenText,
   Sobre: Church,
   Perfil: UserRound,
   Configuracoes: Settings,
@@ -82,6 +85,7 @@ const menuItems: Array<{ key: AppRoute; label: string }> = [
   { key: 'Biblia', label: 'Bíblia' },
   { key: 'Eventos', label: 'Eventos' },
   { key: 'Mensagens', label: 'Mensagens' },
+  { key: 'Louvores', label: 'Louvores' },
   { key: 'Sobre', label: 'Sobre' },
   { key: 'Perfil', label: 'Perfil' },
   { key: 'Configuracoes', label: 'Configurações' },
@@ -94,6 +98,7 @@ const titles: Record<AppRoute, string> = {
   Biblia: 'Bíblia',
   Eventos: 'Eventos',
   Mensagens: 'Mensagens',
+  Louvores: 'Louvores',
   Sobre: 'Sobre',
   Perfil: 'Perfil',
   Configuracoes: 'Configurações',
@@ -177,6 +182,8 @@ export const AppNavigation = () => {
         return <EventosScreen />;
       case 'Mensagens':
         return <MensagensScreen />;
+      case 'Louvores':
+        return <LouvoresScreen />;
       case 'Sobre':
         return (
           <SobreScreen

@@ -174,7 +174,7 @@ const InfinitePeopleCarousel = ({
           <Image
             source={item.url_imagem ? { uri: item.url_imagem } : personFallback}
             style={styles.personImage}
-            resizeMode="contain"
+            resizeMode="cover"
           />
           <View style={styles.personBody}>
             <Text style={styles.personName} numberOfLines={2}>
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   },
   personImage: {
     width: '100%',
-    height: 178,
+    aspectRatio: 9 / 16,
     backgroundColor: colors.surfaceMuted,
   },
   personBody: { minHeight: 92, padding: 13 },

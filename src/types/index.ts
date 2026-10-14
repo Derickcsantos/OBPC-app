@@ -172,6 +172,16 @@ export interface Pessoa {
   email?: string | null;
   created_at?: string;
   updated_at?: string;
+  imagens?: PessoaImagem[];
+}
+
+export interface PessoaImagem {
+  pessoa_imagem_id: string;
+  pessoa_id: string;
+  url_imagem: string;
+  ordem?: number | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Usuario {
@@ -257,6 +267,7 @@ export interface AdminUploadFile {
 
 export type AdminContentKind =
   | 'ministerios'
+  | 'pessoas'
   | 'eventos'
   | 'noticias'
   | 'mensagens'

@@ -464,6 +464,7 @@ const EventoDetail = ({
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   const openLink = async () => {
     const registrationLink = getRegistrationLink(evento);
@@ -540,6 +541,7 @@ const EventoDetail = ({
       setNome('');
       setEmail('');
       setTelefone('');
+      setRegistered(true);
       Alert.alert(
         'Inscricao confirmada',
         'Sua inscricao foi realizada com sucesso.',
@@ -547,6 +549,7 @@ const EventoDetail = ({
     } catch (requestError: any) {
       const status = requestError?.response?.status;
       const message = requestError?.response?.data?.message;
+      if (status === 409 && /ja esta inscrito/i.test(message || '')) setRegistered(true);
       Alert.alert(
         status === 409 ? 'Evento lotado' : 'Nao foi possivel inscrever',
         message || 'Tente novamente em instantes.',
@@ -664,7 +667,7 @@ const EventoDetail = ({
 
       <View style={styles.registrationCard}>
         <Text style={styles.registrationTitle}>Inscricao</Text>
-        <TextInput
+        {!user ? <><TextInput
           value={nome}
           onChangeText={setNome}
           placeholder="Nome completo"
@@ -687,20 +690,20 @@ const EventoDetail = ({
           placeholderTextColor={colors.textSecondary}
           keyboardType="phone-pad"
           style={styles.input}
-        />
+        /></> : null}
         <TouchableOpacity
           style={[
             styles.detailLinkButton,
             isFull && styles.detailLinkButtonDisabled,
           ]}
           onPress={handleSubmit}
-          disabled={submitting || isFull}
+          disabled={submitting || isFull || registered}
         >
           {submitting ? (
             <ActivityIndicator size="small" color={colors.white} />
           ) : (
             <Text style={styles.linkButtonText}>
-              {isFull ? 'Evento lotado' : 'Confirmar inscricao'}
+              {registered ? 'Voce ja esta inscrito' : isFull ? 'Evento lotado' : user ? 'Inscrever' : 'Confirmar inscricao'}
             </Text>
           )}
         </TouchableOpacity>
