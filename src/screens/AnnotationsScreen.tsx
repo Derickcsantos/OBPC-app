@@ -9,7 +9,7 @@ import { colors } from '../theme/colors';
 import { radius, spacing, typography } from '../theme/tokens';
 import { Annotation, AnnotationPayload, BibleReference } from '../types';
 
-const referenceLabel = (reference: BibleReference) => `${reference.book}:${reference.chapter}:${reference.verse}`;
+const referenceLabel = (reference: BibleReference, bookName?: string) => `${bookName || `Livro ${reference.book}`} ${reference.chapter}:${reference.verse}`;
 const formatAnnotationDate = (value?: string) => {
   const date = value ? new Date(value) : null;
   return date && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat('pt-BR').format(date) : '';
@@ -24,7 +24,7 @@ export const AnnotationsScreen = () => {
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<Annotation | null>(null);
   const [selected, setSelected] = useState<Annotation | null>(null);
-  const [referenceTexts, setReferenceTexts] = useState<Record<string, string>>({});
+  const [referenceTexts, setReferenceTexts] = useState<Record<string, { text: string; bookName?: string }>>({});
   const [editorOpen, setEditorOpen] = useState(false);
 
   const load = useCallback(async (nextPage = 1) => {
@@ -50,7 +50,7 @@ export const AnnotationsScreen = () => {
     let active = true;
     Promise.all(selected.versiculos.map(async reference => {
       const verse = (await getVerses(reference.book, reference.chapter, reference.verse, reference.version))[0];
-      return [`${reference.version}-${reference.book}-${reference.chapter}-${reference.verse}`, verse?.text ?? 'Texto indisponivel.'] as const;
+      return [`${reference.version}-${reference.book}-${reference.chapter}-${reference.verse}`, { text: verse?.text ?? 'Texto indisponivel.', bookName: verse?.book_name }] as const;
     })).then(entries => { if (active) setReferenceTexts(Object.fromEntries(entries)); }).catch(() => { if (active) setReferenceTexts({}); });
     return () => { active = false; };
   }, [selected]);
@@ -88,7 +88,7 @@ export const AnnotationsScreen = () => {
         {items.map(item => (
           <View key={item.id} style={styles.card} onTouchEnd={() => setSelected(item)}>
             <Text style={styles.cardTitle}>{item.titulo || 'Anotação sem título'}</Text>
-            <Text style={styles.references}>{item.versiculos.map(referenceLabel).join(' · ')}</Text>
+            <Text style={styles.references}>{item.versiculos.map(reference => referenceLabel(reference)).join(' · ')}</Text>
             <Text style={styles.body} numberOfLines={4}>{item.conteudo}</Text>
             <View style={styles.actions}>
               <Text style={styles.date}>{formatAnnotationDate(item.created_at)}</Text>
@@ -111,7 +111,7 @@ export const AnnotationsScreen = () => {
           <Pressable style={styles.backButton} onPress={() => setSelected(null)}><Icon as={ChevronLeft} size={18} /><Text style={styles.backText}>Voltar</Text></Pressable>
           <Text style={styles.detailTitle}>{selected?.titulo || 'Anotacao sem titulo'}</Text>
           <Text style={styles.detailBody}>{selected?.conteudo}</Text>
-          <View style={styles.linkedVerses}><Text style={styles.linkedTitle}>Textos vinculados</Text>{selected?.versiculos.map(reference => { const key = `${reference.version}-${reference.book}-${reference.chapter}-${reference.verse}`; return <View key={key} style={styles.linkedVerseBlock}><Text style={styles.linkedVerse}>{referenceLabel(reference)}</Text><Text style={styles.linkedVerseText}>{referenceTexts[key] ?? 'Carregando texto...'}</Text></View>; })}</View>
+          <View style={styles.linkedVerses}><Text style={styles.linkedTitle}>Textos vinculados</Text>{selected?.versiculos.map(reference => { const key = `${reference.version}-${reference.book}-${reference.chapter}-${reference.verse}`; const detail = referenceTexts[key]; return <View key={key} style={styles.linkedVerseBlock}><Text style={styles.linkedVerse}>{referenceLabel(reference, detail?.bookName)}</Text><Text style={styles.linkedVerseText}>{detail?.text ?? 'Carregando texto...'}</Text></View>; })}</View>
           {formatAnnotationDate(selected?.created_at) ? <Text style={styles.detailDate}>Criada em {formatAnnotationDate(selected?.created_at)}</Text> : null}
           <View style={styles.detailActions}><Pressable style={styles.detailButton} onPress={() => { if (selected) { setEditing(selected); setEditorOpen(true); setSelected(null); } }}><Text style={styles.detailButtonText}>Editar</Text></Pressable><Pressable style={styles.detailButton} onPress={() => selected && remove(selected)}><Text style={styles.detailButtonText}>Excluir</Text></Pressable></View>
         </ScrollView>

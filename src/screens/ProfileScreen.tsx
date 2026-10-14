@@ -44,12 +44,16 @@ export const ProfileScreen = () => {
     setLoadingMinisterios(true);
     setMinisteriosError('');
     try {
-      const [todos, selecionados] = await Promise.all([
-        getMinisterios(),
-        getMeusMinisteriosInteresse(),
-      ]);
+      const todos = await getMinisterios();
       setMinisterios(todos);
-      setInteresses(new Set(selecionados.map(item => item.ministerio_id)));
+      try {
+        const selecionados = await getMeusMinisteriosInteresse();
+        setInteresses(new Set(selecionados.map(item => item.ministerio_id)));
+      } catch (interestError) {
+        console.error('Erro ao carregar interesses em ministerios:', interestError);
+        setInteresses(new Set());
+        setMinisteriosError('Os ministérios estão disponíveis; tente marcar seu interesse novamente.');
+      }
     } catch (error) {
       console.error('Erro ao carregar interesses em ministerios:', error);
       setMinisteriosError('Nao foi possivel carregar seus ministerios.');
