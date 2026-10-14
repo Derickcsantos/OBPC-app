@@ -56,7 +56,7 @@ export const PessoaScreen = ({
 
     <View>
       <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={event => setPhotoIndex(Math.round(event.nativeEvent.contentOffset.x / photoWidth))}>
-        {(photos.length ? photos : [undefined]).map((url, index) => <Pressable key={url ?? 'fallback'} accessibilityRole="button" accessibilityLabel={`Ampliar foto ${index + 1} de ${pessoa.nome}`} onPress={() => { setPhotoIndex(index); setPhotoOpen(true); }}><Image source={url ? { uri: url } : fallbackImage} style={[styles.photo, { width: photoWidth }]} resizeMode="cover" /></Pressable>)}
+        {(photos.length ? photos : [undefined]).map((url, index) => <Pressable key={url ?? 'fallback'} accessibilityRole="button" accessibilityLabel={`Ampliar foto ${index + 1} de ${pessoa.nome}`} onPress={() => { setPhotoIndex(index); setPhotoOpen(true); }}><Image source={url ? { uri: url } : fallbackImage} style={[styles.photo, { width: photoWidth }]} resizeMode="contain" /></Pressable>)}
       </ScrollView>
       {photos.length > 1 ? <View style={styles.dots}>{photos.map((url, index) => <View key={url} style={[styles.dot, index === photoIndex && styles.dotActive]} />)}</View> : null}
       <Text style={styles.photoHint}>{photos.length > 1 ? 'Deslize para ver as fotos · toque para ampliar' : 'Toque para ampliar'}</Text>
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   photo: {
-    height: 280,
+    aspectRatio: 4 / 5,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceMuted,
   },
