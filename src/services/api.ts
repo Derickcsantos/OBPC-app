@@ -242,6 +242,10 @@ export const adicionarMinisterioInteresse = async (id: string): Promise<void> =>
 export const removerMinisterioInteresse = async (id: string): Promise<void> => {
   await api.delete(`/api/ministerios/${id}/interesse`);
 };
+export const getMinisterioInteressados = async (id: string): Promise<AdminUser[]> => {
+  const response = await api.get(`/api/ministerios/${encodeURIComponent(id)}/interessados`);
+  return normalizeArray<AdminUser>(extractData<unknown>(response));
+};
 
 export const getPessoas = () => getResource<Pessoa>('/api/pessoas');
 export const getPessoaById = (id: string) => getResourceById<Pessoa>('/api/pessoas', id);

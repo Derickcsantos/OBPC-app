@@ -11,6 +11,7 @@ import {
   NotebookPen,
   History,
   ShieldCheck,
+  Newspaper,
   X,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -33,6 +34,7 @@ import { SobreScreen } from '../screens/SobreScreen';
 import { AnnotationsScreen } from '../screens/AnnotationsScreen';
 import { AdminScreen } from '../screens/AdminScreen';
 import { LouvoresScreen } from '../screens/LouvoresScreen';
+import { NoticiasScreen } from '../screens/NoticiasScreen';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 import { useAppearance } from '../context/AppearanceContext';
@@ -46,6 +48,7 @@ type AppRoute =
   | 'Eventos'
   | 'Mensagens'
   | 'Louvores'
+  | 'Noticias'
   | 'Sobre'
   | 'Perfil'
   | 'Configuracoes'
@@ -62,6 +65,7 @@ const routeIcons: Record<AppRoute, LucideIcon> = {
   Eventos: CalendarDays,
   Mensagens: BookOpenText,
   Louvores: BookOpenText,
+  Noticias: Newspaper,
   Sobre: Church,
   Perfil: UserRound,
   Configuracoes: Settings,
@@ -86,6 +90,7 @@ const menuItems: Array<{ key: AppRoute; label: string }> = [
   { key: 'Eventos', label: 'Eventos' },
   { key: 'Mensagens', label: 'Mensagens' },
   { key: 'Louvores', label: 'Louvores' },
+  { key: 'Noticias', label: 'Notícias' },
   { key: 'Sobre', label: 'Sobre' },
   { key: 'Perfil', label: 'Perfil' },
   { key: 'Configuracoes', label: 'Configurações' },
@@ -99,6 +104,7 @@ const titles: Record<AppRoute, string> = {
   Eventos: 'Eventos',
   Mensagens: 'Mensagens',
   Louvores: 'Louvores',
+  Noticias: 'Notícias',
   Sobre: 'Sobre',
   Perfil: 'Perfil',
   Configuracoes: 'Configurações',
@@ -184,6 +190,8 @@ export const AppNavigation = () => {
         return <MensagensScreen />;
       case 'Louvores':
         return <LouvoresScreen />;
+      case 'Noticias':
+        return <NoticiasScreen />;
       case 'Sobre':
         return (
           <SobreScreen

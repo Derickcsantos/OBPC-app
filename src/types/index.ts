@@ -4,6 +4,7 @@ export interface Noticia {
   mensagem_noticia: string;
   data_noticia: string;
   observacao_noticia?: string | null;
+  url_capa?: string | null;
   url_noticia?: string | null;
   imagem_url?: string | null;
 }
