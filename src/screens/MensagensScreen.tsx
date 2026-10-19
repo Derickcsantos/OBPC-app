@@ -1,4 +1,4 @@
-import { BookOpenText, ChevronRight, ArrowLeft } from 'lucide-react-native';
+import { BookOpenText, ChevronRight, ArrowLeft, CircleCheck } from 'lucide-react-native';
 import { Icon } from '../components/Icon';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -15,7 +15,9 @@ import {
   getPlanoEstudo,
   getPlanoEstudoDiaTextos,
   getPlanosEstudo,
+  setPlanoDiaConclusao,
 } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import {
@@ -57,6 +59,7 @@ const getDurationLabel = (plano: PlanoEstudo) => {
 };
 
 export const MensagensScreen = () => {
+  const { user } = useAuth();
   const [planos, setPlanos] = useState<PlanoEstudo[]>([]);
   const [selectedPlano, setSelectedPlano] = useState<PlanoEstudo | null>(null);
   const [dias, setDias] = useState<PlanoEstudoDia[]>([]);
@@ -87,7 +90,7 @@ export const MensagensScreen = () => {
     try {
       setPlanos(await getPlanosEstudo());
     } catch (requestError) {
-      setError('Nao foi possivel carregar os planos de estudo.');
+      setError('Não foi possível carregar os planos de estudo.');
       console.error('Erro ao carregar planos de estudo:', requestError);
     } finally {
       setLoading(false);
@@ -136,7 +139,7 @@ export const MensagensScreen = () => {
       }));
       setDias(detalhe.dias);
     } catch (requestError) {
-      setError('Nao foi possivel carregar os dias deste plano.');
+      setError('Não foi possível carregar os dias deste plano.');
       console.error('Erro ao carregar dias do plano:', requestError);
     } finally {
       setDetailLoading(false);
@@ -167,7 +170,7 @@ export const MensagensScreen = () => {
         await getPlanoEstudoDiaTextos(identifier, dia.dia, DEFAULT_VERSION),
       );
     } catch (requestError) {
-      setError('Nao foi possivel carregar os textos deste dia.');
+      setError('Não foi possível carregar os textos deste dia.');
       console.error('Erro ao carregar textos do dia:', requestError);
     } finally {
       setDetailLoading(false);
@@ -175,6 +178,18 @@ export const MensagensScreen = () => {
       if (!refreshingCurrent) {
         setLoading(false);
       }
+    }
+  };
+
+  const toggleDayCompletion = async (dia: PlanoEstudoDia) => {
+    if (!user || !selectedPlano) return;
+    const next = !dia.concluido;
+    setDias(current => current.map(item => item.dia === dia.dia ? { ...item, concluido: next } : item));
+    try {
+      await setPlanoDiaConclusao(getPlanIdentifier(selectedPlano), dia.dia, next);
+    } catch {
+      setDias(current => current.map(item => item.dia === dia.dia ? { ...item, concluido: !next } : item));
+      setError('Não foi possível salvar a conclusão deste dia.');
     }
   };
 
@@ -291,7 +306,7 @@ export const MensagensScreen = () => {
             )
           }
           renderItem={({ item }) => (
-            <DayItem dia={item} onPress={() => openDia(selectedPlano, item)} />
+            <DayItem dia={item} canMark={Boolean(user)} onPress={() => openDia(selectedPlano, item)} onToggle={() => toggleDayCompletion(item)} />
           )}
           initialNumToRender={24}
           maxToRenderPerBatch={24}
@@ -371,10 +386,14 @@ const PlanoItem = ({
 
 const DayItem = ({
   dia,
+  canMark,
   onPress,
+  onToggle,
 }: {
   dia: PlanoEstudoDia;
+  canMark: boolean;
   onPress: () => void;
+  onToggle: () => void;
 }) => (
   <TouchableOpacity
     style={styles.dayCard}
@@ -385,12 +404,12 @@ const DayItem = ({
       <Text style={styles.dayNumber}>{dia.dia}</Text>
     </View>
     <View style={styles.dayTextBlock}>
-      <Text style={styles.dayTitle}>{dia.titulo || `Dia ${dia.dia}`}</Text>
+      <View style={styles.dayTitleRow}><Text style={styles.dayTitle}>{dia.titulo || `Dia ${dia.dia}`}</Text>{dia.concluido ? <Icon as={CircleCheck} size={18} color="#188038" /> : null}</View>
       {dia.quantidade_leituras ? (
         <Text style={styles.dayMeta}>{dia.quantidade_leituras} leituras</Text>
       ) : null}
     </View>
-    <Icon as={ChevronRight} />
+    {canMark ? <TouchableOpacity accessibilityRole="button" accessibilityLabel={dia.concluido ? `Desmarcar dia ${dia.dia} como concluído` : `Marcar dia ${dia.dia} como concluído`} onPress={event => { event.stopPropagation(); onToggle(); }} style={styles.completionButton}>{dia.concluido ? <Icon as={CircleCheck} size={22} color="#188038" /> : <Text style={styles.completionLabel}>Concluir</Text>}</TouchableOpacity> : <Icon as={ChevronRight} />}
   </TouchableOpacity>
 );
 
@@ -591,6 +610,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 12,
   },
+  dayTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  completionButton: { minHeight: 44, minWidth: 50, alignItems: 'center', justifyContent: 'center' },
+  completionLabel: { color: colors.textSecondary, fontSize: typography.caption, fontWeight: '600' },
   dayTitle: {
     color: colors.textPrimary,
     fontSize: typography.subtitle,

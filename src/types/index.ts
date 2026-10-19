@@ -35,6 +35,7 @@ export interface PlanoEstudoDia {
   dia: number;
   titulo?: string | null;
   quantidade_leituras?: number | null;
+  concluido?: boolean;
 }
 
 export interface PlanoEstudoVersiculo {
@@ -258,6 +259,15 @@ export interface AdminUser {
   avatar_url?: string | null;
   role: 'user' | 'admin';
   created_at?: string;
+}
+
+export interface AuditLog {
+  log_id: string;
+  actor_id?: string | null;
+  category: string;
+  action: string;
+  status_code: number;
+  created_at: string;
 }
 
 export interface AdminUploadFile {

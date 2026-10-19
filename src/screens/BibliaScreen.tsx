@@ -52,7 +52,7 @@ const testamentLabel = (testament?: number) => {
     return 'Novo Testamento';
   }
 
-  return 'Biblia';
+  return 'Bíblia';
 };
 
 const uniqueVerses = (items: Verse[]) => {
@@ -202,7 +202,7 @@ export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
       setVerses([]);
       setSearchResults([]);
     } catch (requestError) {
-      setError('Nao foi possivel carregar os livros da Biblia.');
+      setError('Não foi possível carregar os livros da Bíblia.');
       console.error('Erro ao carregar livros:', requestError);
     } finally {
       setLoading(false);
@@ -282,8 +282,8 @@ export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
           console.error('Erro ao pre-carregar livro:', requestError);
         });
     } catch (requestError) {
-      setError('Nao foi possivel carregar os capitulos.');
-      console.error('Erro ao carregar capitulos:', requestError);
+      setError('Não foi possível carregar os capítulos.');
+      console.error('Erro ao carregar capítulos:', requestError);
     } finally {
       setLoading(false);
     }
@@ -323,8 +323,8 @@ export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
       );
       setStep('verses');
     } catch (requestError) {
-      setError('Nao foi possivel carregar os versiculos.');
-      console.error('Erro ao carregar versiculos:', requestError);
+      setError('Não foi possível carregar os versículos.');
+      console.error('Erro ao carregar versículos:', requestError);
     } finally {
       setLoading(false);
     }
@@ -392,8 +392,8 @@ export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
       );
     } catch (requestError) {
       setSearchResults([]);
-      setError('Nao foi possivel buscar na Biblia.');
-      console.error('Erro ao buscar na Biblia:', requestError);
+      setError('Não foi possível buscar na Bíblia.');
+      console.error('Erro ao buscar na Bíblia:', requestError);
     } finally {
       setSearching(false);
     }
@@ -525,7 +525,7 @@ export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
           console.error('Erro ao pre-carregar livro:', requestError);
         });
     } catch (requestError) {
-      setError('Nao foi possivel trocar a versao da Biblia.');
+      setError('Não foi possível trocar a versão da Bíblia.');
       console.error('Erro ao trocar versao:', requestError);
     } finally {
       setLoading(false);
@@ -656,7 +656,7 @@ export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Abrindo Biblia</Text>
+        <Text style={styles.loadingText}>Abrindo a Bíblia</Text>
       </View>
     );
   }
@@ -669,7 +669,7 @@ export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
             <View style={styles.titleBlock}>
               <Text style={styles.kicker}>Leitura e busca</Text>
               <Text style={styles.title}>
-                Biblia {getVersionLabel(selectedVersionDetails)}
+                Bíblia {getVersionLabel(selectedVersionDetails)}
               </Text>
             </View>
             <TouchableOpacity
@@ -679,7 +679,7 @@ export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
               ]}
               onPress={() => setSearchOpen(current => !current)}
               accessibilityRole="button"
-              accessibilityLabel="Buscar na Biblia"
+              accessibilityLabel="Buscar na Bíblia"
             >
               <SearchGlyph active={searchOpen} />
             </TouchableOpacity>
@@ -868,7 +868,7 @@ export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
               contentContainerStyle={styles.gridContainer}
               ListEmptyComponent={
                 <EmptyState
-                  text="Nenhum capitulo disponivel."
+                  text="Nenhum capítulo disponível."
                   onRetry={() => selectedBook && handleSelectBook(selectedBook)}
                 />
               }
@@ -908,7 +908,7 @@ export const BibliaScreen = React.forwardRef<BibliaScreenHandle, {
                   ))
                 ) : (
                   <EmptyState
-                    text="Versiculos nao carregados."
+                    text="Versículos não carregados."
                     onRetry={() =>
                       selectedChapter && handleSelectChapter(selectedChapter)
                     }
@@ -1030,7 +1030,7 @@ const VerseItem = ({
       {reference ? (
         <Text style={styles.verseReference}>{reference}</Text>
       ) : null}
-      <Text style={[styles.verseText, highlightTextStyle(highlights)]}>{verse.text || 'Texto indisponivel'}</Text>
+      <Text style={[styles.verseText, highlightTextStyle(highlights)]}>{verse.text || 'Texto indisponível'}</Text>
     </View>
   </Pressable>
 );

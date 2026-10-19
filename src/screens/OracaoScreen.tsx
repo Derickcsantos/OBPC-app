@@ -76,8 +76,8 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
       })));
       setHistorico(oradas.items.map(item => ({ ...item, orado_por_mim: true })));
     } catch (requestError) {
-      console.error('Erro ao carregar pedidos de oracao:', requestError);
-      Alert.alert('Erro', 'Nao foi possivel carregar os pedidos de oracao.');
+      console.error('Erro ao carregar pedidos de oração:', requestError);
+      Alert.alert('Erro', 'Não foi possível carregar os pedidos de oração.');
     } finally {
       setLoadingList(false);
       setRefreshing(false);
@@ -119,8 +119,8 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
   const handleSubmit = async () => {
     if (!nome.trim() || !pedido.trim()) {
       Alert.alert(
-        'Campos obrigatorios',
-        'Preencha seu nome e o pedido de oracao.',
+        'Campos obrigatórios',
+        'Preencha seu nome e o pedido de oração.',
       );
       return;
     }
@@ -137,14 +137,14 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
 
       Alert.alert(
         'Pedido enviado',
-        'Recebemos seu pedido e estaremos em oracao.',
+        'Recebemos seu pedido e estaremos em oração.',
       );
       resetForm();
       setView('list');
       loadOracoes();
     } catch (requestError) {
-      console.error('Erro ao enviar pedido de oracao:', requestError);
-      Alert.alert('Nao enviado', 'Nao foi possivel enviar seu pedido agora.');
+      console.error('Erro ao enviar pedido de oração:', requestError);
+      Alert.alert('Não enviado', 'Não foi possível enviar seu pedido agora.');
     } finally {
       setSubmitting(false);
     }
@@ -196,9 +196,9 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
         ? 'Sua sessao expirou. Saia do perfil, entre novamente e tente de novo.'
         : axios.isAxiosError(error) && typeof error.response?.data?.message === 'string'
           ? error.response.data.message
-          : 'Verifique sua conexao e tente novamente.';
+          : 'Verifique sua conexão e tente novamente.';
       applyState(marked);
-      Alert.alert('Nao foi possivel atualizar', message);
+      Alert.alert('Não foi possível atualizar', message);
     } finally {
       setOrandoIds(current => {
         const next = new Set(current);
@@ -215,16 +215,16 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <TopBar title="Pedido de oracao" onBack={goToList} />
+        <TopBar title="Pedido de oração" onBack={goToList} />
         <View style={styles.detailCard}>
           <Text style={styles.detailStatus}>
             {selectedOracao.status || 'em andamento'}
           </Text>
           <Text style={styles.detailName}>
-            {selectedOracao.nome_pedido || 'Pedido de oracao'}
+            {selectedOracao.nome_pedido || 'Pedido de oração'}
           </Text>
           <Text style={styles.detailText}>
-            {selectedOracao.descricao_pedido || 'Sem descricao.'}
+            {selectedOracao.descricao_pedido || 'Sem descrição.'}
           </Text>
 
           <View style={styles.detailMeta}>
@@ -282,7 +282,7 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
             />
 
             <ToggleRow
-              label="Mostrar no grupo de oracao"
+              label="Mostrar no grupo de oração"
               value={mostrarGrupo}
               onValueChange={setMostrarGrupo}
             />
@@ -328,7 +328,7 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
         <View style={styles.listHeader}>
           <View>
             <Text style={styles.kicker}>Intercessao</Text>
-            <Text style={styles.title}>Pedidos de oracao</Text>
+            <Text style={styles.title}>Pedidos de oração</Text>
           </View>
           {loadingList ? (
             <ActivityIndicator size="small" color={colors.primary} />
@@ -372,7 +372,7 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
               <TouchableOpacity activeOpacity={0.82} onPress={() => openDetail(oracao)}>
                 <View style={styles.prayerHeader}>
                   <Text style={styles.prayerName} numberOfLines={1}>
-                    {oracao.nome_pedido || 'Pedido de oracao'}
+                    {oracao.nome_pedido || 'Pedido de oração'}
                   </Text>
                   <Text style={styles.prayerStatus}>
                     {oracao.status || 'em andamento'}
@@ -388,7 +388,7 @@ export const OracaoScreen = ({ initialTab = 'all' }: { initialTab?: PrayerTab })
           ))
         ) : (
           <Text style={styles.emptyText}>
-            {activeTab === 'history' ? 'Você ainda não marcou nenhum pedido como orado.' : activeTab === 'pending' ? 'Não há pedidos pendentes para você.' : 'Nenhum pedido de oracao no momento.'}
+            {activeTab === 'history' ? 'Você ainda não marcou nenhum pedido como orado.' : activeTab === 'pending' ? 'Não há pedidos pendentes para você.' : 'Nenhum pedido de oração no momento.'}
           </Text>
         )}
       </ScrollView>

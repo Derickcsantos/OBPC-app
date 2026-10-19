@@ -160,7 +160,7 @@ export const EventosScreen = () => {
     try {
       setEventos(await getEventos());
     } catch (requestError) {
-      setError('Nao foi possivel carregar os eventos.');
+      setError('Não foi possível carregar os eventos.');
       console.error('Erro ao carregar eventos:', requestError);
     } finally {
       setLoading(false);
@@ -240,7 +240,7 @@ export const EventosScreen = () => {
               </View>
               <TouchableOpacity
                 accessibilityRole="button"
-                accessibilityLabel={calendarOpen ? 'Fechar calendario' : 'Abrir calendario'}
+                accessibilityLabel={calendarOpen ? 'Fechar calendário' : 'Abrir calendário'}
                 accessibilityState={{ expanded: calendarOpen, selected: Boolean(selectedDate) }}
                 style={[styles.calendarButton, (calendarOpen || selectedDate) && styles.calendarButtonActive]}
                 onPress={() => setCalendarOpen(current => !current)}
@@ -323,7 +323,7 @@ const EventoItem = ({
       <Text style={styles.eventDate}>{formatDate(evento.data_evento)}</Text>
       <Text style={styles.eventTitle}>{evento.nome_evento || 'Evento'}</Text>
       <Text style={styles.eventDescription} numberOfLines={3}>
-        {evento.descricao_evento || 'Descricao indisponivel.'}
+        {evento.descricao_evento || 'Descrição indisponível.'}
       </Text>
       <View style={styles.eventMetaRow}>
         {evento.numero_vagas !== undefined && evento.numero_vagas !== null ? (
@@ -333,7 +333,7 @@ const EventoItem = ({
           <Text style={styles.eventMeta}>{formatTime(evento.hora_inicio)}</Text>
         ) : null}
       </View>
-      <Text style={styles.registrationHint}>Inscricao disponivel</Text>
+      <Text style={styles.registrationHint}>Inscrição disponível</Text>
       <Text style={styles.openDetailText}>Ver detalhes</Text>
     </TouchableOpacity>
   );
@@ -518,14 +518,14 @@ const EventoDetail = ({
     const trimmedPhone = telefone.trim();
 
     if (!trimmedName || !trimmedEmail || (!user && trimmedPhone.length < 8)) {
-      Alert.alert('Dados obrigatorios', user ? 'Sua conta nao possui os dados necessarios para esta inscricao.' : 'Preencha nome, email e telefone.');
+      Alert.alert('Dados obrigatórios', user ? 'Sua conta não possui os dados necessários para esta inscrição.' : 'Preencha nome, e-mail e telefone.');
       return;
     }
 
     if (isFull) {
       Alert.alert(
         'Evento lotado',
-        'Nao ha vagas disponiveis para este evento.',
+        'Não há vagas disponíveis para este evento.',
       );
       return;
     }
@@ -543,16 +543,16 @@ const EventoDetail = ({
       setTelefone('');
       setRegistered(true);
       Alert.alert(
-        'Inscricao confirmada',
-        'Sua inscricao foi realizada com sucesso.',
+        'Inscrição confirmada',
+        'Sua inscrição foi realizada com sucesso.',
       );
     } catch (requestError: any) {
       const status = requestError?.response?.status;
       const message = requestError?.response?.data?.message;
-      if (status === 409 && /ja esta inscrito/i.test(message || '')) setRegistered(true);
+      if (status === 409 && /já está inscrito/i.test(message || '')) setRegistered(true);
       Alert.alert(
-        status === 409 ? 'Evento lotado' : 'Nao foi possivel inscrever',
-        message || 'Tente novamente em instantes.',
+        status === 409 ? (/inscrito/i.test(message || '') ? 'Inscrição existente' : 'Evento lotado') : 'Não foi possível inscrever',
+        message || 'Verifique sua conexão e tente novamente.',
       );
     } finally {
       setSubmitting(false);
@@ -622,7 +622,7 @@ const EventoDetail = ({
       <View style={styles.detailFacts}>
         {formatTime(evento.hora_inicio) ? (
           <InfoPill
-            label="Inicio"
+            label="Início"
             value={formatTime(evento.hora_inicio) || ''}
           />
         ) : null}
@@ -631,7 +631,7 @@ const EventoDetail = ({
         ) : null}
       </View>
       <Text style={styles.detailText}>
-        {evento.descricao_evento || 'Descricao indisponivel.'}
+        {evento.descricao_evento || 'Descrição indisponível.'}
       </Text>
 
       <TouchableOpacity accessibilityRole="link" style={styles.detailCalendarButton} onPress={addToCalendar}>
@@ -641,21 +641,21 @@ const EventoDetail = ({
 
       {observations ? (
         <View style={styles.detailSection}>
-          <Text style={styles.detailSectionTitle}>Observacoes</Text>
+          <Text style={styles.detailSectionTitle}>Observações</Text>
           <Text style={styles.detailText}>{observations}</Text>
         </View>
       ) : null}
 
       {address ? (
         <View style={styles.detailSection}>
-          <Text style={styles.detailSectionTitle}>Endereco</Text>
+          <Text style={styles.detailSectionTitle}>Endereço</Text>
           <Text style={styles.detailText}>{address}</Text>
         </View>
       ) : null}
 
       {evento.responsavel_nome || evento.responsavel_telefone ? (
         <View style={styles.detailSection}>
-          <Text style={styles.detailSectionTitle}>Responsavel</Text>
+          <Text style={styles.detailSectionTitle}>Responsável</Text>
           {evento.responsavel_nome ? (
             <Text style={styles.detailText}>{evento.responsavel_nome}</Text>
           ) : null}
@@ -666,7 +666,7 @@ const EventoDetail = ({
       ) : null}
 
       <View style={styles.registrationCard}>
-        <Text style={styles.registrationTitle}>Inscricao</Text>
+        <Text style={styles.registrationTitle}>Inscrição</Text>
         {!user ? <><TextInput
           value={nome}
           onChangeText={setNome}
@@ -677,7 +677,7 @@ const EventoDetail = ({
         <TextInput
           value={email}
           onChangeText={setEmail}
-          placeholder="Email"
+          placeholder="E-mail"
           placeholderTextColor={colors.textSecondary}
           keyboardType="email-address"
           autoCapitalize="none"
@@ -703,7 +703,7 @@ const EventoDetail = ({
             <ActivityIndicator size="small" color={colors.white} />
           ) : (
             <Text style={styles.linkButtonText}>
-              {registered ? 'Voce ja esta inscrito' : isFull ? 'Evento lotado' : user ? 'Inscrever' : 'Confirmar inscricao'}
+              {registered ? 'Você já está inscrito' : isFull ? 'Evento lotado' : user ? 'Inscrever-se' : 'Confirmar inscrição'}
             </Text>
           )}
         </TouchableOpacity>

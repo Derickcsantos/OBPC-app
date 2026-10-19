@@ -3,6 +3,7 @@ import {
   AdminContentKind,
   AdminUploadFile,
   AdminUser,
+  AuditLog,
   Annotation,
   AnnotationPayload,
   BibleReference,
@@ -271,7 +272,7 @@ export const updateEvento = (id: string, payload: UpdateEventoPayload) =>
   updateResource<Evento, UpdateEventoPayload>('/api/eventos', id, payload);
 export const deleteEvento = (id: string) => deleteResource<Evento>('/api/eventos', id);
 export const createEventoInscricao = async (eventoId: string, payload: CreateEventoInscricaoPayload) => {
-  const response = await api.post(`/api/eventos/${eventoId}/inscricoes`, payload);
+  const response = await api.post(`/api/eventos/${encodeURIComponent(eventoId)}/inscricoes`, payload);
   return extractData<EventoInscricao>(response);
 };
 
@@ -311,21 +312,22 @@ export const getPlanosEstudo = async (): Promise<PlanoEstudo[]> => {
 
 export const getPlanoEstudo = async (plano: string): Promise<PlanoEstudoDetalhe> => {
   const identifier = encodeURIComponent(plano);
-
-  return cachedGet(`/api/planos-estudo/${identifier}`, async () => {
+  const detalhe = await cachedGet(`/api/planos-estudo/${identifier}`, async () => {
     const response = await api.get(`/api/planos-estudo/${identifier}`);
-    const detalhe = normalizePlanoEstudoDetalhe(extractData<unknown>(response));
-
-    return {
-      ...detalhe,
-      dias: uniqueBy(
-        detalhe.dias
-          .filter(dia => typeof dia.dia === 'number')
-          .sort((a, b) => a.dia - b.dia),
-        (item, index) => `${item.plano_estudo_dia_id ?? item.dia ?? index}`,
-      ),
-    };
+    const plan = normalizePlanoEstudoDetalhe(extractData<unknown>(response));
+    return { ...plan, dias: uniqueBy(plan.dias.filter(dia => typeof dia.dia === 'number').sort((a, b) => a.dia - b.dia), (item, index) => `${item.plano_estudo_dia_id ?? item.dia ?? index}`) };
   });
+  try {
+    const completedResponse = await api.get(`/api/planos-estudo/${identifier}/conclusoes`);
+    const completedDays = new Set(normalizeArray<number>(extractData<unknown>(completedResponse)));
+    return { ...detalhe, dias: detalhe.dias.map(dia => ({ ...dia, concluido: completedDays.has(dia.dia) })) };
+  } catch {
+    return { ...detalhe, dias: detalhe.dias.map(dia => ({ ...dia, concluido: false })) };
+  }
+};
+
+export const setPlanoDiaConclusao = async (plano: string, dia: number, concluido: boolean): Promise<void> => {
+  await api.put(`/api/planos-estudo/${encodeURIComponent(plano)}/dias/${dia}/conclusao`, { concluido });
 };
 
 export const getPlanoEstudoDiaTextos = async (plano: string, dia: number, version = 'nvi'): Promise<PlanoEstudoDiaTextos> => {
@@ -463,10 +465,28 @@ export const deleteAnnotation = async (id: string): Promise<void> => { await api
 
 export const getHighlights = async (version: string, book: number, chapter: number): Promise<BibleHighlight[]> => {
   const response = await api.get('/api/usuarios/me/destaques', { params: { version, book, chapter } });
-  return normalizeArray<BibleHighlight>(extractData<unknown>(response));
+  return normalizeArray<Record<string, unknown>>(extractData<unknown>(response)).map(normalizeHighlight);
 };
-export const putHighlight = async (payload: BibleHighlightPayload): Promise<BibleHighlight> => extractData<BibleHighlight>(await api.put('/api/usuarios/me/destaques', payload));
+const normalizeHighlight = (value: Record<string, unknown>): BibleHighlight => ({
+  ...value,
+  id: String(value.id ?? value.destaque_id ?? ''),
+  version: String(value.version ?? ''),
+  book: Number(value.book), chapter: Number(value.chapter), verse: Number(value.verse),
+  style: (value.style ?? value.estilo) as BibleHighlight['style'],
+  color: (value.color ?? value.cor) as BibleHighlight['color'],
+}) as BibleHighlight;
+export const putHighlight = async (payload: BibleHighlightPayload): Promise<BibleHighlight> => {
+  const response = await api.put('/api/usuarios/me/destaques', { version: payload.version, book: payload.book, chapter: payload.chapter, verse: payload.verse, estilo: payload.style, cor: payload.color });
+  return normalizeHighlight(extractData<Record<string, unknown>>(response));
+};
 export const deleteHighlight = async (id: string): Promise<void> => { await api.delete(`/api/usuarios/me/destaques/${encodeURIComponent(id)}`); };
+
+export const deleteMyAccount = async (): Promise<void> => { await api.delete('/api/usuarios/me'); };
+export const getAuditLogs = async (page = 1, limit = 20, category?: string): Promise<PaginatedResult<AuditLog>> => {
+  const response = await api.get('/api/admin/logs', { params: { page, limit: Math.min(limit, 100), ...(category ? { category } : {}) } });
+  return extractPaginated<AuditLog>(response, page, limit);
+};
+export const getAuditLog = async (id: string): Promise<AuditLog> => extractData<AuditLog>(await api.get(`/api/admin/logs/${encodeURIComponent(id)}`));
 
 export const getAdminUsers = async (page = 1, limit = 20, search = ''): Promise<PaginatedResult<AdminUser>> => {
   const response = await api.get('/api/admin/usuarios', { params: { page, limit: Math.min(limit, 100), ...(search.trim() ? { search: search.trim() } : {}) } });

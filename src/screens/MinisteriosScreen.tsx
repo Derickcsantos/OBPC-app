@@ -52,8 +52,8 @@ export const MinisteriosScreen = () => {
     try {
       setMinisterios(await getMinisterios());
     } catch (requestError) {
-      setError('Nao foi possivel carregar os ministerios.');
-      console.error('Erro ao carregar ministerios:', requestError);
+      setError('Não foi possível carregar os ministérios.');
+      console.error('Erro ao carregar ministérios:', requestError);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -99,7 +99,7 @@ export const MinisteriosScreen = () => {
         <>
           <Text style={styles.title}>Servindo juntos</Text>
           <Text style={styles.subtitle}>
-            Conheca os ministerios ativos e encontre um lugar para caminhar com
+            Conheça os ministérios ativos e encontre um lugar para caminhar com
             a igreja.
           </Text>
 
@@ -136,7 +136,7 @@ export const MinisteriosScreen = () => {
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>
-                Nenhum ministerio encontrado
+                Nenhum ministério encontrado
               </Text>
               <Text style={styles.emptyText}>
                 Puxe para atualizar ou tente novamente mais tarde.
@@ -170,7 +170,7 @@ const MinisterioDetail = ({
         {ministerio.nome_ministerio || 'Ministério'}
       </Text>
       <Text style={styles.detailDescription}>
-        {ministerio.descricao_ministerio || 'Descricao em breve.'}
+        {ministerio.descricao_ministerio || 'Descrição em breve.'}
       </Text>
 
       {ministerio.url_ministerio ? (
@@ -178,7 +178,7 @@ const MinisterioDetail = ({
           style={styles.openButton}
           onPress={() => openLink(ministerio.url_ministerio)}
         >
-          <Text style={styles.openButtonText}>Abrir link do ministerio</Text>
+          <Text style={styles.openButtonText}>Abrir link do ministério</Text>
         </TouchableOpacity>
       ) : null}
     </View>

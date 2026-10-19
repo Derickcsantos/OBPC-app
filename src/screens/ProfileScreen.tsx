@@ -19,6 +19,7 @@ import {
   getMeusMinisteriosInteresse,
   getMinisterios,
   removerMinisterioInteresse,
+  deleteMyAccount,
 } from '../services/api';
 import { Ministerio } from '../types';
 
@@ -28,6 +29,7 @@ export const ProfileScreen = () => {
   const { user, isRestoring, isSigningIn, signInWithGoogle, signOut } =
     useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [ministerios, setMinisterios] = useState<Ministerio[]>([]);
   const [interesses, setInteresses] = useState<Set<string>>(new Set());
   const [loadingMinisterios, setLoadingMinisterios] = useState(false);
@@ -50,13 +52,13 @@ export const ProfileScreen = () => {
         const selecionados = await getMeusMinisteriosInteresse();
         setInteresses(new Set(selecionados.map(item => item.ministerio_id)));
       } catch (interestError) {
-        console.error('Erro ao carregar interesses em ministerios:', interestError);
+        console.error('Erro ao carregar interesses em ministérios:', interestError);
         setInteresses(new Set());
         setMinisteriosError('Os ministérios estão disponíveis; tente marcar seu interesse novamente.');
       }
     } catch (error) {
-      console.error('Erro ao carregar interesses em ministerios:', error);
-      setMinisteriosError('Nao foi possivel carregar seus ministerios.');
+      console.error('Erro ao carregar interesses em ministérios:', error);
+      setMinisteriosError('Não foi possível carregar seus ministérios.');
     } finally {
       setLoadingMinisterios(false);
     }
@@ -81,9 +83,9 @@ export const ProfileScreen = () => {
       if (nextValue) await adicionarMinisterioInteresse(id);
       else await removerMinisterioInteresse(id);
     } catch (error) {
-      console.error('Erro ao atualizar interesse em ministerio:', error);
+      console.error('Erro ao atualizar interesse em ministério:', error);
       setInteresses(previous);
-      setMinisteriosError('Nao foi possivel salvar essa alteracao.');
+      setMinisteriosError('Não foi possível salvar essa alteração.');
     } finally {
       setSavingMinisterio(null);
     }
@@ -119,6 +121,25 @@ export const ProfileScreen = () => {
     }
   };
 
+  const handleDeleteAccount = () => Alert.alert(
+    'Excluir minha conta',
+    'Sua conta, marcações, anotações, interesses e inscrições em eventos serão removidos. Esta ação não pode ser desfeita.',
+    [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir minha conta', style: 'destructive', onPress: async () => {
+        setIsDeletingAccount(true);
+        try {
+          await deleteMyAccount();
+          try { await signOut(); } catch { /* O contexto ainda limpa a sessão no finally. */ }
+        } catch {
+          Alert.alert('Não foi possível excluir a conta', 'Verifique sua conexão e tente novamente.');
+        } finally {
+          setIsDeletingAccount(false);
+        }
+      } },
+    ],
+  );
+
   if (isRestoring) {
     return (
       <View style={styles.loadingContainer}>
@@ -139,7 +160,7 @@ export const ProfileScreen = () => {
           style={styles.avatar}
           resizeMode="cover"
         />
-        <Text style={styles.name}>{user?.nome_usuario || 'Membro OBPC'}</Text>
+        <Text style={styles.name}>{user?.nome_usuario || 'Membro da OBPC'}</Text>
         <Text style={styles.subtitle}>
           {user?.email_usuario || 'Entre para acessar seu perfil'}
         </Text>
@@ -157,11 +178,11 @@ export const ProfileScreen = () => {
           <View style={styles.card}>
             <View style={styles.sectionHeading}>
               <View style={styles.sectionHeadingText}>
-                <Text style={styles.sectionTitle}>Ministerios de interesse</Text>
+                <Text style={styles.sectionTitle}>Ministérios de interesse</Text>
                 <Text style={styles.paragraph}>
                   {ministeriosSelecionados
                     ? `${ministeriosSelecionados} selecionado${ministeriosSelecionados === 1 ? '' : 's'}`
-                    : 'Marque onde voce gostaria de servir.'}
+                    : 'Marque onde você gostaria de servir.'}
                 </Text>
               </View>
               {loadingMinisterios ? <ActivityIndicator color={colors.primary} /> : null}
@@ -205,6 +226,9 @@ export const ProfileScreen = () => {
             ) : (
               <Text style={styles.secondaryButtonText}>Sair da conta</Text>
             )}
+          </Pressable>
+          <Pressable accessibilityRole="button" disabled={isDeletingAccount} onPress={handleDeleteAccount} style={styles.deleteAccountButton}>
+            {isDeletingAccount ? <ActivityIndicator color={colors.danger} /> : <Text style={styles.deleteAccountText}>Excluir minha conta</Text>}
           </Pressable>
         </>
       ) : (
@@ -368,6 +392,8 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: '600',
   },
+  deleteAccountButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 8, marginBottom: 20 },
+  deleteAccountText: { color: colors.danger, fontWeight: '600', textDecorationLine: 'underline' },
   buttonPressed: {
     opacity: 0.78,
   },

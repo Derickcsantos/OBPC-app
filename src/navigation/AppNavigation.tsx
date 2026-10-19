@@ -11,6 +11,7 @@ import {
   NotebookPen,
   History,
   ShieldCheck,
+  ClipboardList,
   Newspaper,
   X,
   type LucideIcon,
@@ -35,6 +36,7 @@ import { AnnotationsScreen } from '../screens/AnnotationsScreen';
 import { AdminScreen } from '../screens/AdminScreen';
 import { LouvoresScreen } from '../screens/LouvoresScreen';
 import { NoticiasScreen } from '../screens/NoticiasScreen';
+import { AdminLogsScreen } from '../screens/AdminLogsScreen';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 import { useAppearance } from '../context/AppearanceContext';
@@ -55,6 +57,7 @@ type AppRoute =
   | 'HistoricoOracoes'
   | 'Anotacoes'
   | 'Admin'
+  | 'Logs'
   | 'Pessoa';
 type TabRoute = 'Inicio' | 'Ministerios' | 'Oracao' | 'Biblia' | 'Eventos';
 const routeIcons: Record<AppRoute, LucideIcon> = {
@@ -73,6 +76,7 @@ const routeIcons: Record<AppRoute, LucideIcon> = {
   HistoricoOracoes: History,
   Anotacoes: NotebookPen,
   Admin: ShieldCheck,
+  Logs: ClipboardList,
 };
 const tabs: Array<{ key: TabRoute; label: string }> = [
   { key: 'Inicio', label: 'Início' },
@@ -112,6 +116,7 @@ const titles: Record<AppRoute, string> = {
   HistoricoOracoes: 'Orações em que orei',
   Anotacoes: 'Minhas anotações',
   Admin: 'Administração',
+  Logs: 'Logs',
 };
 
 export const AppNavigation = () => {
@@ -182,6 +187,8 @@ export const AppNavigation = () => {
         return <AnnotationsScreen />;
       case 'Admin':
         return user?.role === 'admin' ? <AdminScreen /> : <ProfileScreen />;
+      case 'Logs':
+        return user?.role === 'admin' ? <AdminLogsScreen /> : <ProfileScreen />;
       case 'Biblia':
         return <BibliaScreen ref={bibleRef} onReadingModeChange={setBibleReadingMode} />;
       case 'Eventos':
@@ -335,7 +342,7 @@ const Sidebar = ({
             { key: 'HistoricoOracoes' as AppRoute, label: 'Orações em que orei' },
             { key: 'Anotacoes' as AppRoute, label: 'Minhas anotações' },
           ] : []),
-          ...(isAdmin ? [{ key: 'Admin' as AppRoute, label: 'Administração' }] : []),
+          ...(isAdmin ? [{ key: 'Admin' as AppRoute, label: 'Administração' }, { key: 'Logs' as AppRoute, label: 'Logs' }] : []),
         ].map(item => {
           const active = currentRoute === item.key;
           return (

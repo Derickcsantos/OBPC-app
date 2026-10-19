@@ -1,6 +1,6 @@
 import { ChevronLeft, Edit3, Trash2 } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../components/AppText';
 import { Icon } from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
@@ -37,7 +37,7 @@ export const AnnotationsScreen = () => {
       setPage(result.pagination.page);
       setTotalPages(result.pagination.totalPages);
     } catch (loadError) {
-      console.error('Erro ao carregar anotacoes:', loadError);
+      console.error('Erro ao carregar anotações:', loadError);
       setError('Não foi possível carregar suas anotações.');
     } finally {
       setLoading(false);
@@ -50,7 +50,7 @@ export const AnnotationsScreen = () => {
     let active = true;
     Promise.all(selected.versiculos.map(async reference => {
       const verse = (await getVerses(reference.book, reference.chapter, reference.verse, reference.version))[0];
-      return [`${reference.version}-${reference.book}-${reference.chapter}-${reference.verse}`, { text: verse?.text ?? 'Texto indisponivel.', bookName: verse?.book_name }] as const;
+      return [`${reference.version}-${reference.book}-${reference.chapter}-${reference.verse}`, { text: verse?.text ?? 'Texto indisponível.', bookName: verse?.book_name }] as const;
     })).then(entries => { if (active) setReferenceTexts(Object.fromEntries(entries)); }).catch(() => { if (active) setReferenceTexts({}); });
     return () => { active = false; };
   }, [selected]);
@@ -109,7 +109,7 @@ export const AnnotationsScreen = () => {
       <Modal visible={Boolean(selected)} animationType="slide" onRequestClose={() => setSelected(null)}>
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
           <Pressable style={styles.backButton} onPress={() => setSelected(null)}><Icon as={ChevronLeft} size={18} /><Text style={styles.backText}>Voltar</Text></Pressable>
-          <Text style={styles.detailTitle}>{selected?.titulo || 'Anotacao sem titulo'}</Text>
+          <Text style={styles.detailTitle}>{selected?.titulo || 'Anotação sem título'}</Text>
           <Text style={styles.detailBody}>{selected?.conteudo}</Text>
           <View style={styles.linkedVerses}><Text style={styles.linkedTitle}>Textos vinculados</Text>{selected?.versiculos.map(reference => { const key = `${reference.version}-${reference.book}-${reference.chapter}-${reference.verse}`; const detail = referenceTexts[key]; return <View key={key} style={styles.linkedVerseBlock}><Text style={styles.linkedVerse}>{referenceLabel(reference, detail?.bookName)}</Text><Text style={styles.linkedVerseText}>{detail?.text ?? 'Carregando texto...'}</Text></View>; })}</View>
           {formatAnnotationDate(selected?.created_at) ? <Text style={styles.detailDate}>Criada em {formatAnnotationDate(selected?.created_at)}</Text> : null}
@@ -146,14 +146,14 @@ export const AnnotationEditor = ({ visible, annotation, references = [], onClose
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalLayer}><Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={styles.sheet}>
+      <KeyboardAvoidingView style={styles.modalLayer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}><Pressable style={styles.backdrop} onPress={onClose} />
+        <ScrollView style={styles.sheet} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
           <Text style={styles.sheetTitle}>{annotation ? 'Editar anotação' : 'Nova anotação'}</Text>
           <TextInput value={title} onChangeText={setTitle} maxLength={200} placeholder="Título opcional" placeholderTextColor={colors.textSecondary} style={styles.input} />
           <TextInput value={content} onChangeText={setContent} maxLength={20000} multiline textAlignVertical="top" placeholder="Escreva sua reflexão" placeholderTextColor={colors.textSecondary} style={[styles.input, styles.textArea]} />
           <View style={styles.sheetActions}><Pressable style={styles.cancelButton} onPress={onClose}><Text style={styles.cancelText}>Cancelar</Text></Pressable><Pressable disabled={saving} style={styles.saveButton} onPress={save}>{saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveText}>Salvar</Text>}</Pressable></View>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -172,6 +172,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 8 }, date: { flex: 1, color: colors.textSecondary, fontSize: typography.caption }, smallIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   backButton: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: 44, gap: 6, marginBottom: spacing.section }, backText: { color: colors.textPrimary, fontWeight: '600' }, detailTitle: { color: colors.textPrimary, fontSize: typography.title, fontWeight: '600' }, detailBody: { color: colors.textPrimary, lineHeight: 24, marginTop: spacing.section }, linkedVerses: { marginTop: spacing.section, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, linkedTitle: { color: colors.textPrimary, fontWeight: '600', marginBottom: 8 }, linkedVerseBlock: { marginTop: 10 }, linkedVerse: { color: colors.textPrimary, fontWeight: '600' }, linkedVerseText: { color: colors.textSecondary, lineHeight: 22, marginTop: 3 }, detailDate: { color: colors.textSecondary, marginTop: spacing.section, fontSize: typography.caption }, detailActions: { flexDirection: 'row', gap: 10, marginTop: spacing.section }, detailButton: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, detailButtonText: { color: colors.textPrimary, fontWeight: '600' },
   pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 10 }, pageButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.md }, pageText: { color: colors.textSecondary }, nextIcon: { transform: [{ rotate: '180deg' }] },
-  modalLayer: { flex: 1, justifyContent: 'flex-end' }, backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.48)' }, sheet: { padding: spacing.page, paddingBottom: 30, borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: colors.surface }, sheetTitle: { color: colors.textPrimary, fontSize: typography.heading, fontWeight: '600', marginBottom: 14 },
+  modalLayer: { flex: 1, justifyContent: 'flex-end' }, backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.48)' }, sheet: { maxHeight: '92%', padding: spacing.page, paddingBottom: 30, borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: colors.surface }, sheetContent: { paddingBottom: 24 }, sheetTitle: { color: colors.textPrimary, fontSize: typography.heading, fontWeight: '600', marginBottom: 14 },
   input: { minHeight: 46, color: colors.textPrimary, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12, marginBottom: 12 }, textArea: { minHeight: 150 }, sheetActions: { flexDirection: 'row', gap: 10 }, cancelButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center' }, cancelText: { color: colors.textSecondary, fontWeight: '600' }, saveButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.primary }, saveText: { color: colors.white, fontWeight: '600' },
 });
