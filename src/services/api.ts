@@ -92,6 +92,15 @@ export const googleLogin = async (idToken: string): Promise<AuthSession> => {
   return response.data;
 };
 
+export const appleLogin = async (idToken: string, nonce: string): Promise<AuthSession> => {
+  const response = await api.post<AuthSession>('/api/auth/apple', {
+    id_token: idToken,
+    nonce,
+  });
+
+  return response.data;
+};
+
 export const extractData = <T>(response: AxiosResponse | { data?: unknown }): T => {
   const body = response?.data as { data?: T } | T | undefined;
 

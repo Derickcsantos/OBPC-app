@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from '../config/auth';
-import { googleLogin, setApiAccessToken, setApiUnauthorizedHandler } from '../services/api';
+import { appleLogin, googleLogin, setApiAccessToken, setApiUnauthorizedHandler } from '../services/api';
 import { AuthSession, AuthUser } from '../types/auth';
 
 const SESSION_STORAGE_KEY = 'obpc.auth.session';
@@ -15,6 +17,7 @@ interface AuthContextValue {
   isRestoring: boolean;
   isSigningIn: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -173,7 +176,7 @@ const clearStoredSession = async () => {
   await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
 };
 
-const getSignInErrorMessage = (error: unknown): string => {
+const getSignInErrorMessage = (error: unknown, provider: 'Google' | 'Apple' = 'Google'): string => {
   const googleSignin = nativeGoogleSignin ?? null;
   if (googleSignin?.isErrorWithCode(error)) {
     if (error.code === 'DEVELOPER_ERROR' || error.message?.includes('DEVELOPER_ERROR')) {
@@ -197,10 +200,12 @@ const getSignInErrorMessage = (error: unknown): string => {
     const status = error.response?.status;
     const backendMessage = typeof error.response?.data?.message === 'string' ? error.response.data.message : null;
     if (status === 502 || status === 503) {
-      return 'O servidor não conseguiu validar o login Google agora. Tente novamente em instantes. Se o problema persistir, a configuração GOOGLE_CLIENT_IDS do Worker precisa incluir o Web Client ID do aplicativo.';
+      return provider === 'Google'
+        ? 'O servidor não conseguiu validar o login Google agora. Tente novamente em instantes. Se o problema persistir, a configuração GOOGLE_CLIENT_IDS do Worker precisa incluir o Web Client ID do aplicativo.'
+        : 'O servidor não conseguiu validar o login com Apple agora. Tente novamente em instantes.';
     }
-    if (status) return backendMessage ?? `O login foi recusado pelo servidor (${status}).`;
-    return 'Não foi possível conectar ao servidor para concluir o login Google.';
+    if (status) return backendMessage ?? `O login com ${provider} foi recusado pelo servidor (${status}).`;
+    return `Não foi possível conectar ao servidor para concluir o login com ${provider}.`;
   }
 
   if (error instanceof Error && error.message) {
@@ -294,6 +299,39 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     }
   };
 
+  const signInWithApple = async () => {
+    setIsSigningIn(true);
+
+    try {
+      if (Platform.OS !== 'ios' || !(await AppleAuthentication.isAvailableAsync())) {
+        throw new Error('O login com Apple está disponível apenas em dispositivos iOS compatíveis.');
+      }
+
+      const nonce = Crypto.randomUUID();
+      const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, nonce);
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+        nonce: hashedNonce,
+      });
+
+      if (!credential.identityToken) {
+        throw new Error('A Apple não retornou um token de identidade. Tente novamente.');
+      }
+
+      const nextSession = await appleLogin(credential.identityToken, nonce);
+      await saveSession(nextSession);
+      setApiAccessToken(nextSession.access_token);
+      setSession(nextSession);
+    } catch (error) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ERR_REQUEST_CANCELED') {
+        return;
+      }
+      throw new Error(getSignInErrorMessage(error, 'Apple'));
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
   const signOut = async () => {
     try {
       if (nativeGoogleSignin) await nativeGoogleSignin.GoogleSignin.signOut();
@@ -311,6 +349,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       isRestoring,
       isSigningIn,
       signInWithGoogle,
+      signInWithApple,
       signOut,
     }),
     [isRestoring, isSigningIn, session],

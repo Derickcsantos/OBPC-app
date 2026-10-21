@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {
   createAnnotation,
+  appleLogin,
   desmarcarOracaoComoOrada,
   getAnnotations,
   getAdminUsers,
@@ -84,5 +85,18 @@ describe('marcarOracaoComoOrada', () => {
     apiClient.patch.mockResolvedValueOnce({ data: { data: { usuario_id: 'u1', role: 'admin' } } });
     await expect(updateAdminUserRole('u1', 'admin')).resolves.toMatchObject({ role: 'admin' });
     expect(apiClient.patch).toHaveBeenCalledWith('/api/admin/usuarios/u1/role', { role: 'admin' });
+  });
+});
+
+describe('appleLogin', () => {
+  it('envia o token e o nonce no contrato da API e retorna a sessao', async () => {
+    const session = { access_token: 'obpc-token', user: { usuario_id: 'u1' } };
+    apiClient.post.mockResolvedValueOnce({ data: session });
+
+    await expect(appleLogin('apple-id-token', 'original-nonce')).resolves.toEqual(session);
+    expect(apiClient.post).toHaveBeenCalledWith('/api/auth/apple', {
+      id_token: 'apple-id-token',
+      nonce: 'original-nonce',
+    });
   });
 });

@@ -22,6 +22,7 @@
           "iosUrlScheme": "com.googleusercontent.apps.834990693788-n2fg81bltsntguugdca3j0i11i8ejb6h"
         }
       ],
+      "expo-apple-authentication",
       [
         "expo-image-picker",
         {
@@ -38,7 +39,8 @@
     "ios": {
       "userInterfaceStyle": "automatic",
       "supportsTablet": true,
-      "bundleIdentifier": "com.obpcapp"
+      "bundleIdentifier": "com.obpcapp",
+      "usesAppleSignIn": true
     },
     "android": {
       "userInterfaceStyle": "automatic",

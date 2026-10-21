@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import {
   ActivityIndicator,
   Alert,
@@ -26,8 +28,9 @@ import { Ministerio } from '../types';
 const logo = require('../../logo.jpg');
 
 export const ProfileScreen = () => {
-  const { user, isRestoring, isSigningIn, signInWithGoogle, signOut } =
+  const { user, isRestoring, isSigningIn, signInWithGoogle, signInWithApple, signOut } =
     useAuth();
+  const [appleSignInAvailable, setAppleSignInAvailable] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [ministerios, setMinisterios] = useState<Ministerio[]>([]);
@@ -35,6 +38,18 @@ export const ProfileScreen = () => {
   const [loadingMinisterios, setLoadingMinisterios] = useState(false);
   const [savingMinisterio, setSavingMinisterio] = useState<string | null>(null);
   const [ministeriosError, setMinisteriosError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    if (Platform.OS === 'ios') {
+      AppleAuthentication.isAvailableAsync().then(available => {
+        if (active) setAppleSignInAvailable(available);
+      }).catch(() => {
+        if (active) setAppleSignInAvailable(false);
+      });
+    }
+    return () => { active = false; };
+  }, []);
 
   const loadMinisterios = useCallback(async () => {
     if (!user) {
@@ -102,6 +117,17 @@ export const ProfileScreen = () => {
         error instanceof Error
           ? error.message
           : 'Não foi possível entrar com o Google.',
+      );
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      await signInWithApple();
+    } catch (error) {
+      Alert.alert(
+        'Login com Apple',
+        error instanceof Error ? error.message : 'Não foi possível entrar com a Apple.',
       );
     }
   };
@@ -227,6 +253,7 @@ export const ProfileScreen = () => {
               <Text style={styles.secondaryButtonText}>Sair da conta</Text>
             )}
           </Pressable>
+
           <Pressable accessibilityRole="button" disabled={isDeletingAccount} onPress={handleDeleteAccount} style={styles.deleteAccountButton}>
             {isDeletingAccount ? <ActivityIndicator color={colors.danger} /> : <Text style={styles.deleteAccountText}>Excluir minha conta</Text>}
           </Pressable>
@@ -257,6 +284,17 @@ export const ProfileScreen = () => {
               </>
             )}
           </Pressable>
+          {appleSignInAvailable ? (
+            <AppleAuthentication.AppleAuthenticationButton
+              accessibilityLabel="Entrar com Apple"
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={radius.md}
+              onPress={handleAppleSignIn}
+              pointerEvents={isSigningIn ? 'none' : 'auto'}
+              style={[styles.appleButton, isSigningIn && styles.disabledButton]}
+            />
+          ) : null}
         </View>
       )}
     </ScrollView>
@@ -374,6 +412,8 @@ const styles = createDynamicStyles(() => StyleSheet.create({
   googleIcon: {
     marginRight: 10,
   },
+  appleButton: { width: '100%', height: 44, marginTop: spacing.sm },
+  disabledButton: { opacity: 0.5 },
   googleButtonText: {
     color: colors.textPrimary,
     fontSize: typography.body,
