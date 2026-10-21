@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
 import { useAuth } from '../context/AuthContext';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import GoogleIcon from '../assets/google-icon-logo-svgrepo-com.svg';
 import {
@@ -270,7 +270,7 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
@@ -397,4 +397,4 @@ const styles = StyleSheet.create({
   buttonPressed: {
     opacity: 0.78,
   },
-});
+}));

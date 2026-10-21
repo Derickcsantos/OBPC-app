@@ -18,7 +18,7 @@ import {
   setPlanoDiaConclusao,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import {
   PlanoEstudo,
@@ -485,7 +485,7 @@ const EmptyState = ({
   </ScrollView>
 );
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
@@ -714,4 +714,4 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '600',
   },
-});
+}));

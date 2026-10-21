@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
 import { useAppearance } from '../context/AppearanceContext';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 
 const lightLogo = require('../../logo.jpg');
@@ -141,7 +141,7 @@ const Shortcut = ({
   </TouchableOpacity>
 );
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
@@ -199,4 +199,4 @@ const styles = StyleSheet.create({
   bottomSpacer: {
     height: 28,
   },
-});
+}));

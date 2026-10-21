@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from './AppText';
 import { Icon } from './Icon';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { radius, spacing, typography } from '../theme/tokens';
 
 export const formatDateBr = (value: string) => {
@@ -41,6 +41,6 @@ export const DatePickerField = ({ label, value, onChange }: { label: string; val
   </View>;
 };
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   field: { marginBottom: 4 }, label: { color: colors.textPrimary, fontWeight: '600', marginBottom: 7 }, row: { flexDirection: 'row', gap: 8 }, input: { flex: 1, minHeight: 46, paddingHorizontal: 12, color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.inputBackground, marginBottom: 10 }, button: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, buttonActive: { backgroundColor: colors.primary }, calendar: { marginBottom: spacing.md, padding: spacing.sm, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, borderRadius: radius.md, backgroundColor: colors.surface }, header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }, month: { color: colors.textPrimary, fontSize: typography.body, fontWeight: '600', textTransform: 'capitalize' }, navigation: { flexDirection: 'row', gap: 6 }, navButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, grid: { flexDirection: 'row', flexWrap: 'wrap' }, week: { width: '14.2857%', textAlign: 'center', color: colors.textSecondary, fontSize: typography.caption, marginBottom: 4 }, day: { width: '14.2857%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md }, daySelected: { backgroundColor: colors.primary }, dayText: { color: colors.textPrimary, fontSize: typography.caption }, dayTextSelected: { color: colors.white, fontWeight: '600' }, clear: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4, paddingVertical: 6 }, clearText: { color: colors.textSecondary, fontSize: typography.caption, fontWeight: '600' },
-});
+}));

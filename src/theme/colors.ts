@@ -1,49 +1,96 @@
-import { DynamicColorIOS, Platform, PlatformColor, type ColorValue } from 'react-native';
+import type { ColorValue } from 'react-native';
+import type { ThemePreference } from '../context/AppearanceContext';
 
-const dynamic = (cssVariable: string, light: string, dark: string, androidAttribute: string): ColorValue => {
-  if (Platform.OS === 'web') {
-    return `var(${cssVariable}, ${light})`;
-  }
-
-  if (Platform.OS === 'ios') {
-    return DynamicColorIOS({ light, dark });
-  }
-
-  if (Platform.OS === 'android') {
-    return PlatformColor(androidAttribute);
-  }
-
-  return light;
+export type AppColors = {
+  background: ColorValue;
+  surface: ColorValue;
+  surfaceMuted: ColorValue;
+  primary: ColorValue;
+  primarySoft: ColorValue;
+  accent: ColorValue;
+  accentSoft: ColorValue;
+  textPrimary: ColorValue;
+  textSecondary: ColorValue;
+  textInverted: ColorValue;
+  border: ColorValue;
+  inputBackground: ColorValue;
+  success: ColorValue;
+  danger: ColorValue;
+  cardShadow: ColorValue;
+  white: ColorValue;
+  black: ColorValue;
+  homeShortcutBackground: ColorValue;
 };
 
-// Android system attributes vary between manufacturers and can resolve text and
-// backgrounds to the same color. App-owned day/night resources keep the palette
-// deterministic and still react to Appearance.setColorScheme.
-const background = dynamic('--obpc-background', '#FFFFFF', '#000000', '@color/obpc_background');
-const surface = dynamic('--obpc-surface', '#FFFFFF', '#111111', '@color/obpc_surface');
-const muted = dynamic('--obpc-muted', '#F2F2F2', '#202020', '@color/obpc_muted');
-const primary = dynamic('--obpc-primary', '#111111', '#FFFFFF', '@color/obpc_primary');
-const secondary = dynamic('--obpc-secondary', '#666666', '#AFAFAF', '@color/obpc_secondary');
-const border = dynamic('--obpc-border', '#DEDEDE', '#383838', '@color/obpc_border');
-const inverted = dynamic('--obpc-inverted', '#FFFFFF', '#000000', '@color/obpc_inverted');
-
-export const colors = {
-  background,
-  surface,
-  surfaceMuted: muted,
-  primary,
-  primarySoft: muted,
-  accent: primary,
-  accentSoft: muted,
-  textPrimary: primary,
-  textSecondary: secondary,
-  textInverted: inverted,
-  border,
-  inputBackground: muted,
-  success: primary,
-  danger: primary,
+const lightColors: AppColors = {
+  background: '#FFFFFF',
+  surface: '#FFFFFF',
+  surfaceMuted: '#F2F2F2',
+  primary: '#111111',
+  primarySoft: '#F2F2F2',
+  accent: '#111111',
+  accentSoft: '#F2F2F2',
+  textPrimary: '#111111',
+  textSecondary: '#666666',
+  textInverted: '#FFFFFF',
+  border: '#DEDEDE',
+  inputBackground: '#F2F2F2',
+  success: '#111111',
+  danger: '#111111',
   cardShadow: '#000000',
-  white: inverted,
-  black: primary,
-  homeShortcutBackground: muted,
+  white: '#FFFFFF',
+  black: '#111111',
+  homeShortcutBackground: '#F2F2F2',
+};
+
+const darkColors: AppColors = {
+  background: '#000000',
+  surface: '#111111',
+  surfaceMuted: '#202020',
+  primary: '#FFFFFF',
+  primarySoft: '#202020',
+  accent: '#FFFFFF',
+  accentSoft: '#202020',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#AFAFAF',
+  textInverted: '#000000',
+  border: '#383838',
+  inputBackground: '#202020',
+  success: '#FFFFFF',
+  danger: '#FFFFFF',
+  cardShadow: '#000000',
+  white: '#000000',
+  black: '#FFFFFF',
+  homeShortcutBackground: '#202020',
+};
+
+let activeTheme: ThemePreference = 'light';
+
+export const setActiveTheme = (theme: ThemePreference): void => {
+  activeTheme = theme;
+};
+
+export const getThemeColors = (theme: ThemePreference): AppColors =>
+  theme === 'dark' ? darkColors : lightColors;
+
+// Keep existing screen styles theme-aware, even though their style objects
+// are declared at module scope.
+export const colors = new Proxy(lightColors, {
+  get: (_target, key: keyof AppColors) => getThemeColors(activeTheme)[key],
+});
+
+export const createDynamicStyles = <T extends object>(
+  factory: () => T,
+): T => {
+  const cache = new Map<ThemePreference, T>();
+  return new Proxy({} as T, {
+    get: (_target, key: string | symbol) => {
+      let styles = cache.get(activeTheme);
+      if (!styles) {
+        styles = factory();
+        cache.set(activeTheme, styles);
+      }
+      return styles[key as keyof T];
+    },
+  });
 };

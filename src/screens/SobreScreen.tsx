@@ -14,7 +14,7 @@ import { useAppearance } from '../context/AppearanceContext';
 import InstagramIcon from '../assets/instagram-svgrepo-com.svg';
 import WhatsappIcon from '../assets/whatsapp-svgrepo-com.svg';
 import { getPessoas } from '../services/api';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import { Pessoa } from '../types';
 
@@ -190,7 +190,7 @@ const InfinitePeopleCarousel = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   peopleSeparator: { width: cardGap },
   container: { flex: 1, backgroundColor: colors.white },
   content: {
@@ -330,4 +330,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 5,
   },
-});
+}));

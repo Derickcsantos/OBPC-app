@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import { Pessoa } from '../types';
 
@@ -107,7 +107,7 @@ export const PessoaScreen = ({
   </>;
 };
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.page, paddingBottom: 42 },
   backButton: {
@@ -204,4 +204,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 3,
   },
-});
+}));

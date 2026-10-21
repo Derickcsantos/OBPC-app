@@ -6,7 +6,7 @@ import { AppText as Text } from './AppText';
 import { Icon } from './Icon';
 import { uploadAdminMedia } from '../services/api';
 import { AdminContentKind } from '../types';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { radius, spacing } from '../theme/tokens';
 
 export const MediaPicker = ({ context, value, onChange, readOnly = false }: { context: AdminContentKind; value?: string | null; onChange: (url: string) => void; readOnly?: boolean }) => {
@@ -33,4 +33,4 @@ export const MediaPicker = ({ context, value, onChange, readOnly = false }: { co
   </View>;
 };
 
-const styles = StyleSheet.create({ container: { marginBottom: spacing.md }, preview: { width: '100%', aspectRatio: 16 / 9, borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, actions: { flexDirection: 'row', gap: 8, marginTop: 8 }, button: { minHeight: 44, flex: 1, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, text: { color: colors.textPrimary, fontWeight: '600' } });
+const styles = createDynamicStyles(() => StyleSheet.create({ container: { marginBottom: spacing.md }, preview: { width: '100%', aspectRatio: 16 / 9, borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, actions: { flexDirection: 'row', gap: 8, marginTop: 8 }, button: { minHeight: 44, flex: 1, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.surfaceMuted }, text: { color: colors.textPrimary, fontWeight: '600' } }));

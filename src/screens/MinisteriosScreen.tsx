@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
 import { getMinisterios } from '../services/api';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import { Ministerio } from '../types';
 
@@ -234,7 +234,7 @@ const MinistryPhotoCarousel = ({ ministerio }: { ministerio: Ministerio }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -381,4 +381,4 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '600',
   },
-});
+}));

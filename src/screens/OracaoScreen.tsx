@@ -25,7 +25,7 @@ import {
   postOracao,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import { Oracao } from '../types';
 import axios from 'axios';
@@ -495,7 +495,7 @@ const ToggleRow = ({
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
@@ -766,4 +766,4 @@ const styles = StyleSheet.create({
   prayedButtonMarked: { opacity: 0.65 },
   prayedButtonText: { color: colors.primary, fontWeight: '600' },
   floatingButtonIcon: { marginRight: 8 },
-});
+}));

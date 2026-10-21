@@ -5,7 +5,7 @@ import { AppText as Text, AppTextInput as TextInput } from '../components/AppTex
 import { Icon } from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
 import { createAnnotation, deleteAnnotation, getAnnotations, getVerses, updateAnnotation } from '../services/api';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { radius, spacing, typography } from '../theme/tokens';
 import { Annotation, AnnotationPayload, BibleReference } from '../types';
 
@@ -160,7 +160,7 @@ export const AnnotationEditor = ({ visible, annotation, references = [], onClose
 
 const CenteredMessage = ({ title, text }: { title: string; text: string }) => <View style={styles.center}><Text style={styles.title}>{title}</Text><Text style={styles.subtitle}>{text}</Text></View>;
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background }, content: { padding: spacing.page, paddingBottom: 40 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.page, backgroundColor: colors.background },
   headingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.section }, headingText: { flex: 1 },
@@ -174,4 +174,4 @@ const styles = StyleSheet.create({
   pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 10 }, pageButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.md }, pageText: { color: colors.textSecondary }, nextIcon: { transform: [{ rotate: '180deg' }] },
   modalLayer: { flex: 1, justifyContent: 'flex-end' }, backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.48)' }, sheet: { maxHeight: '92%', padding: spacing.page, paddingBottom: 30, borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: colors.surface }, sheetContent: { paddingBottom: 24 }, sheetTitle: { color: colors.textPrimary, fontSize: typography.heading, fontWeight: '600', marginBottom: 14 },
   input: { minHeight: 46, color: colors.textPrimary, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12, marginBottom: 12 }, textArea: { minHeight: 150 }, sheetActions: { flexDirection: 'row', gap: 10 }, cancelButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center' }, cancelText: { color: colors.textSecondary, fontWeight: '600' }, saveButton: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.primary }, saveText: { color: colors.white, fontWeight: '600' },
-});
+}));

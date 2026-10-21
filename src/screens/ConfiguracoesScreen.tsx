@@ -5,7 +5,7 @@ import {
   FontSizePreference,
   useAppearance,
 } from '../context/AppearanceContext';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 
 const options: Array<{
@@ -105,7 +105,7 @@ export const ConfiguracoesScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.page, paddingBottom: 40 },
   title: {
@@ -181,4 +181,4 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: colors.accent,
   },
-});
+}));

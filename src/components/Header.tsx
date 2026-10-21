@@ -5,7 +5,7 @@ import { Image, Pressable, StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText as Text } from './AppText';
 import { useAuth } from '../context/AuthContext';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { useAppearance } from '../context/AppearanceContext';
 
 interface HeaderProps {
@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   safeArea: {
     backgroundColor: colors.white,
   },
@@ -128,4 +128,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 12,
   },
-});
+}));

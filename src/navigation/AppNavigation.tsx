@@ -12,6 +12,8 @@ import {
   History,
   ShieldCheck,
   ClipboardList,
+  Shield,
+  FileText,
   Newspaper,
   X,
   type LucideIcon,
@@ -37,8 +39,9 @@ import { AdminScreen } from '../screens/AdminScreen';
 import { LouvoresScreen } from '../screens/LouvoresScreen';
 import { NoticiasScreen } from '../screens/NoticiasScreen';
 import { AdminLogsScreen } from '../screens/AdminLogsScreen';
+import { LegalDocumentScreen } from '../screens/LegalDocumentScreen';
 import { useAuth } from '../context/AuthContext';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { useAppearance } from '../context/AppearanceContext';
 import { Pessoa } from '../types';
 
@@ -58,6 +61,8 @@ type AppRoute =
   | 'Anotacoes'
   | 'Admin'
   | 'Logs'
+  | 'Privacidade'
+  | 'Termos'
   | 'Pessoa';
 type TabRoute = 'Inicio' | 'Ministerios' | 'Oracao' | 'Biblia' | 'Eventos';
 const routeIcons: Record<AppRoute, LucideIcon> = {
@@ -77,6 +82,8 @@ const routeIcons: Record<AppRoute, LucideIcon> = {
   Anotacoes: NotebookPen,
   Admin: ShieldCheck,
   Logs: ClipboardList,
+  Privacidade: Shield,
+  Termos: FileText,
 };
 const tabs: Array<{ key: TabRoute; label: string }> = [
   { key: 'Inicio', label: 'Início' },
@@ -98,6 +105,8 @@ const menuItems: Array<{ key: AppRoute; label: string }> = [
   { key: 'Sobre', label: 'Sobre' },
   { key: 'Perfil', label: 'Perfil' },
   { key: 'Configuracoes', label: 'Configurações' },
+  { key: 'Privacidade', label: 'Política de Privacidade' },
+  { key: 'Termos', label: 'Termos de Uso' },
 ];
 
 const titles: Record<AppRoute, string> = {
@@ -117,6 +126,8 @@ const titles: Record<AppRoute, string> = {
   Anotacoes: 'Minhas anotações',
   Admin: 'Administração',
   Logs: 'Logs',
+  Privacidade: 'Política de Privacidade',
+  Termos: 'Termos de Uso',
 };
 
 export const AppNavigation = () => {
@@ -189,6 +200,10 @@ export const AppNavigation = () => {
         return user?.role === 'admin' ? <AdminScreen /> : <ProfileScreen />;
       case 'Logs':
         return user?.role === 'admin' ? <AdminLogsScreen /> : <ProfileScreen />;
+      case 'Privacidade':
+        return <LegalDocumentScreen document="privacy-policy" />;
+      case 'Termos':
+        return <LegalDocumentScreen document="terms-of-use" />;
       case 'Biblia':
         return <BibliaScreen ref={bibleRef} onReadingModeChange={setBibleReadingMode} />;
       case 'Eventos':
@@ -211,7 +226,7 @@ export const AppNavigation = () => {
       case 'Perfil':
         return <ProfileScreen />;
       case 'Configuracoes':
-        return <ConfiguracoesScreen key={themePreference} />;
+        return <ConfiguracoesScreen />;
       case 'Pessoa':
         return selectedPerson ? (
           <PessoaScreen
@@ -373,7 +388,7 @@ const Sidebar = ({
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   content: { flex: 1 },
   bottomSafe: { backgroundColor: colors.white },
@@ -457,4 +472,4 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   menuItemTextActive: { color: colors.textPrimary, fontWeight: '600' },
-});
+}));

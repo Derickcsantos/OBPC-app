@@ -26,7 +26,7 @@ import {
   getEventoById,
   getEventos,
 } from '../services/api';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import { Evento } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -737,7 +737,7 @@ const EmptyState = ({ onRetry }: { onRetry: () => void }) => (
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
@@ -1111,4 +1111,4 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '600',
   },
-});
+}));

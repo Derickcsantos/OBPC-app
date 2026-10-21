@@ -36,7 +36,7 @@ import {
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { AnnotationEditor } from './AnnotationsScreen';
-import { colors } from '../theme/colors';
+import { colors, createDynamicStyles } from '../theme/colors';
 import { spacing, typography, radius } from '../theme/tokens';
 import { BibleHighlight, BibleReference, BibleVersion, Book, Chapter, HighlightColor, HighlightStyle, Verse } from '../types';
 
@@ -1062,7 +1062,7 @@ const EmptyState = ({
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = createDynamicStyles(() => StyleSheet.create({
   minTouchTarget: { minHeight: 44, justifyContent: 'center' },
   container: {
     flex: 1,
@@ -1459,4 +1459,4 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '600',
   },
-});
+}));

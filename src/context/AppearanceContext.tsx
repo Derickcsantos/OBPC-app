@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Appearance, Platform } from 'react-native';
 import { getCachedValue, setCachedValue } from '../services/offlineStorage';
+import { getThemeColors, setActiveTheme } from '../theme/colors';
 
 export type FontSizePreference = 'small' | 'normal' | 'large';
 export type ThemePreference = 'light' | 'dark';
@@ -10,6 +11,7 @@ interface AppearanceContextValue {
   fontSizeOffset: number;
   setFontSizePreference: (value: FontSizePreference) => void;
   themePreference: ThemePreference;
+  colors: ReturnType<typeof getThemeColors>;
   setThemePreference: (value: ThemePreference) => Promise<void>;
   preferencesReady: boolean;
 }
@@ -28,6 +30,7 @@ const AppearanceContext = createContext<AppearanceContextValue>({
   fontSizeOffset: 0,
   setFontSizePreference: () => undefined,
   themePreference: 'light',
+  colors: getThemeColors('light'),
   setThemePreference: async () => undefined,
   preferencesReady: false,
 });
@@ -36,6 +39,11 @@ export const AppearanceProvider = ({ children }: React.PropsWithChildren) => {
   const [fontSizePreference, setPreference] = useState<FontSizePreference>('normal');
   const [themePreference, setTheme] = useState<ThemePreference>('light');
   const [preferencesReady, setPreferencesReady] = useState(false);
+  const themeWriteQueue = useRef<Promise<void>>(Promise.resolve());
+
+  useEffect(() => {
+    setActiveTheme(themePreference);
+  }, [themePreference]);
 
   useEffect(() => {
     Promise.all([
@@ -47,6 +55,7 @@ export const AppearanceProvider = ({ children }: React.PropsWithChildren) => {
           setPreference(savedPreference);
         }
         if (savedTheme === 'light' || savedTheme === 'dark') {
+          setActiveTheme(savedTheme);
           setTheme(savedTheme);
         }
       })
@@ -62,14 +71,14 @@ export const AppearanceProvider = ({ children }: React.PropsWithChildren) => {
 
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       const root = document.documentElement;
-      const dark = themePreference === 'dark';
-      root.style.setProperty('--obpc-background', dark ? '#000000' : '#FFFFFF');
-      root.style.setProperty('--obpc-surface', dark ? '#111111' : '#FFFFFF');
-      root.style.setProperty('--obpc-muted', dark ? '#202020' : '#F2F2F2');
-      root.style.setProperty('--obpc-primary', dark ? '#FFFFFF' : '#111111');
-      root.style.setProperty('--obpc-secondary', dark ? '#AFAFAF' : '#666666');
-      root.style.setProperty('--obpc-border', dark ? '#383838' : '#DEDEDE');
-      root.style.setProperty('--obpc-inverted', dark ? '#000000' : '#FFFFFF');
+      const palette = getThemeColors(themePreference);
+      root.style.setProperty('--obpc-background', String(palette.background));
+      root.style.setProperty('--obpc-surface', String(palette.surface));
+      root.style.setProperty('--obpc-muted', String(palette.surfaceMuted));
+      root.style.setProperty('--obpc-primary', String(palette.primary));
+      root.style.setProperty('--obpc-secondary', String(palette.textSecondary));
+      root.style.setProperty('--obpc-border', String(palette.border));
+      root.style.setProperty('--obpc-inverted', String(palette.textInverted));
       root.style.colorScheme = themePreference;
     }
   }, [preferencesReady, themePreference]);
@@ -80,12 +89,17 @@ export const AppearanceProvider = ({ children }: React.PropsWithChildren) => {
   };
 
   const setThemePreference = async (value: ThemePreference) => {
+    setActiveTheme(value);
     setTheme(value);
-    await setCachedValue(THEME_KEY, value);
+    themeWriteQueue.current = themeWriteQueue.current
+      .catch(() => undefined)
+      .then(() => setCachedValue(THEME_KEY, value));
+    await themeWriteQueue.current;
   };
 
   const value = useMemo(
     () => ({
+      colors: getThemeColors(themePreference),
       fontSizePreference,
       fontSizeOffset: fontSizeOffsets[fontSizePreference],
       setFontSizePreference,
